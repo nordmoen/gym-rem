@@ -1,0 +1,3 @@
+# Ignore Python created folders and files
+__pycache__/
+*.egg-info/
