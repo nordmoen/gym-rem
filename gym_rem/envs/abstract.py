@@ -35,6 +35,8 @@ class ModularEnv(gym.Env):
         self._modules = {}
         self._joints = []
         self._morphology = None
+        # Used for user interaction:
+        self._real_time = False
         # Run setup
         self.log.info("Creating modular environment")
         self.setup()
@@ -81,7 +83,7 @@ class ModularEnv(gym.Env):
             assert isinstance(module, Module), "{} does not inherit\
                     from Module".format(module)
             # Spawn module in world
-            m_id = self.spawn(module)
+            m_id = module.spawn()
             # Check if the module overlaps
             # TODO Only check local overlap, no need to check the whole
             # world
@@ -105,10 +107,11 @@ class ModularEnv(gym.Env):
                 child_frame = module.connection[1]
                 pyb.createConstraint(parent_id, -1, m_id, 0,
                                      pyb.JOINT_FIXED,
-                                     (-1, 0, 0),
+                                     (1, 0, 0),
                                      parent_frame,
-                                     child_frame)
-                # pyb.setCollisionFilterPair(parent_id, m_id, 0, 0, 0)
+                                     child_frame,
+                                     pyb.getQuaternionFromEuler(module.parent.orientation),
+                                     pyb.getQuaternionFromEuler(module.orientation * -1.))
         return self.observation(), overlaps
 
     def step(self, action):
@@ -155,17 +158,6 @@ class ModularEnv(gym.Env):
         # Return the root's distance from World center
         return np.linalg.norm(position)
 
-    def spawn(self, module):
-        """Spawn the given module in the simulation"""
-        if isinstance(module, Servo):
-            orient = pyb.getQuaternionFromEuler(module.orientation)
-            return pyb.loadURDF('servo/Servo.urdf',
-                                basePosition=module.position,
-                                baseOrientation=orient)
-        else:
-            raise TypeError("Unknown module type: {} ({}) can't spawn"
-                            .format(type(module), module))
-
     def render(self, mode="human"):
         info = pyb.getConnectionInfo(self.client)
         if info['connectionMethod'] != pyb.GUI and mode == 'human':
@@ -178,11 +170,35 @@ class ModularEnv(gym.Env):
             self._last_render = time.time()
             pyb.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
         elif info['connectionMethod'] == pyb.GUI:
+            # Handle interaction with simulation
+            self.handle_interaction()
+            # Calculate time to sleep
             now = time.time()
             diff = now - self._last_render
             to_sleep = self.dt - diff
             if to_sleep > 0:
                 time.sleep(to_sleep)
+            self._last_render = now
         else:
             raise RuntimeError("Unknown pybullet mode ({}) or render mode ({})"
                                .format(info['connectionMethod'], mode))
+
+    def handle_interaction(self):
+        """Handle user interaction with simulation
+
+        This function is called in the 'render' call and is only called if the
+        GUI is visible"""
+        keys = pyb.getKeyboardEvents()
+        # If 'n' is pressed then we want to step the simulation
+        next_key = ord('n')
+        if next_key in keys and keys[next_key] & pyb.KEY_WAS_TRIGGERED:
+            pyb.stepSimulation()
+        # If space is pressed we start/stop real-time simulation
+        space = ord(' ')
+        if space in keys and keys[space] & pyb.KEY_WAS_TRIGGERED:
+            self._real_time = not self._real_time
+            pyb.setRealTimeSimulation(self._real_time)
+        # if 'r' is pressed we restart simulation
+        r = ord('r')
+        if r in keys and keys[r] & pyb.KEY_WAS_TRIGGERED:
+            self.reset(self._morphology)

@@ -108,3 +108,7 @@ class Module(object):
         connects to parent. The 'direction' argument is a vector pointing in
         the direction the module should be attached at."""
         raise NotImplementedError("Abstract class")
+
+    def spawn(self):
+        """Spawn the module in the physics simulation"""
+        raise NotImplementedError("Abstract class")

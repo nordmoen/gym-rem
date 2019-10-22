@@ -18,20 +18,16 @@ env = gym.make("ModularLocomotion-v0")
 env.render()
 # Create modular robot to work with
 robot = Servo()
-curr = robot
-for _ in range(10):
-    curr[Connection.x_plus] = Servo()
-    curr = curr[Connection.x_plus]
-up = Servo()
-# robot += up
+# robot += Servo()
+robot[Connection.x_plus] = Servo()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
 # Regular old gym loop:
 i = 0
-num_sec = 240. * 10
+num_sec = 240. * 4.
 while True:
     cmd = np.sin(i / num_sec) * 1.57
-    action = np.ones(len(robot)) * 1.57
-    env.step(action)
+    action = np.ones(len(robot)) * cmd
+    # env.step(action)
     env.render()
     i += 1

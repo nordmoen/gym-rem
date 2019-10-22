@@ -73,11 +73,10 @@ class Servo(Module):
         # Add module as a child
         self._children[key] = module
         # Calculate connection point
-        direct = np.array(key.value)
-        rot = self._mat
-        position = self.position + rot.dot((direct * SIZE[1]) / 2.)
+        direction = self._mat.dot(np.array(key.value))
+        position = self.position + (direction * SIZE[1]) / 2.
         # Update parent pointer of module
-        module.update(self, position, rot.dot(direct))
+        module.update(self, position, direction)
 
     def __iadd__(self, module):
         for conn in Connection:
@@ -103,11 +102,14 @@ class Servo(Module):
             raise ModuleAttached("This module already has a parent: {}"
                                  .format(self.parent))
         self.parent = parent
-        self.position = pos + (direction * SIZE[0]) / 2.
+        self.position = pos + (direction * SIZE[0] * 1.1) / 2.
         angle = np.arccos(direction.dot(np.array([1., 0, 0])))
         self.orientation = parent.orientation + Servo.to_euler(direction, angle)
-        self.connection = (direction * SIZE[1] / 2.,
-                           -direction * SIZE[1] / 2.)
+        fudge = SIZE[1] / 2.
+        self.connection = (direction * fudge,
+                           (-fudge, 0., 0.),
+                           direction)
+        print(self.connection)
 
     def __repr__(self):
         return "Servo(pos: {}, orient: {})".format(self.position,
@@ -125,3 +127,9 @@ class Servo(Module):
         bank = np.arctan2(x * s - y * z * t, 1. - (x**2 + z**2) * t)
         # return bank, -attitude, heading
         return heading, -attitude, bank
+
+    def spawn(self):
+        orient = pyb.getQuaternionFromEuler(self.orientation)
+        return pyb.loadURDF('servo/Servo.urdf',
+                            basePosition=self.position,
+                            baseOrientation=orient)

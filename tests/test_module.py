@@ -87,6 +87,13 @@ class TestMorpModule(unittest.TestCase):
         m = Module()
         self.assertTrue(hasattr(m, 'update'))
 
+    def test_spawn(self):
+        """Ensure that abstract module has 'spawn' method"""
+        m = Module()
+        self.assertTrue(hasattr(m, 'spawn'))
+        with self.assertRaises(NotImplementedError):
+            m.spawn()
+
 
 if __name__ == '__main__':
     unittest.main()
