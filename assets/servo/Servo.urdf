@@ -43,7 +43,7 @@
 		<parent link="Body" />
 		<child link="Plate" />
 		<axis xyz="0 0 1" />
-		<limit effort="1.5" lower="-1.57" upper="1.57" velocity="6.0" />
+		<limit effort="1.8" lower="-1.57" upper="1.57" velocity="10.6" />
   </joint>
 </robot>
 

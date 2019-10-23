@@ -48,7 +48,7 @@ class Servo(Module):
     def joint(self):
         return {'controlMode': pyb.POSITION_CONTROL,
                 'jointIndex': 0,
-                'maxVelocity': 0.1}
+                'maxVelocity': 10.6}
 
     def __getitem__(self, key):
         if not isinstance(key, Connection):
