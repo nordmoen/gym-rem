@@ -17,9 +17,13 @@ env = gym.make("ModularLocomotion-v0")
 # environment to enable GUI
 env.render()
 # Create modular robot to work with
-robot = Servo()
-# robot += Servo()
-robot[Connection.x_plus] = Servo()
+robot = Servo(2)
+robot += Servo()
+up = robot[Connection.z_plus]
+# up[Connection.z_plus] = Servo()
+# up += Servo()
+# up += Servo()
+# up += Servo()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
 # Regular old gym loop:

@@ -4,6 +4,7 @@
 Unittests for morphology 'Module'
 """
 from gym_rem.morph import Module
+from gym_rem.utils import Rot
 import numpy as np
 import unittest
 
@@ -33,7 +34,7 @@ class TestMorpModule(unittest.TestCase):
         """Ensure that abstract module has orientation"""
         m = Module()
         self.assertTrue(hasattr(m, 'orientation'))
-        self.assertTrue(np.allclose(m.orientation, np.zeros(3)))
+        self.assertTrue(isinstance(m.orientation, Rot))
 
     def test_children(self):
         """Ensure that abstract module has method 'children'"""

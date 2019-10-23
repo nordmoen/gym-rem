@@ -3,6 +3,8 @@
 """
 Abstract module which all morphological modules must extend
 """
+from .exception import ModuleAttached
+from gym_rem.utils import Rot
 import numpy as np
 
 
@@ -14,8 +16,8 @@ class Module(object):
     connection = None
     # Center position of module in global space
     position = np.zeros(3)
-    # Orientation of module, roll, pitch, yaw
-    orientation = np.zeros(3)
+    # Orientation of module
+    orientation = Rot.from_euler(0, 0, 0)
 
     @property
     def children(self):
@@ -107,7 +109,20 @@ class Module(object):
         the module. The 'pos' argument is the central point where this module
         connects to parent. The 'direction' argument is a vector pointing in
         the direction the module should be attached at."""
-        raise NotImplementedError("Abstract class")
+        if self.parent is not None:
+            raise ModuleAttached("This module already has a parent: {}"
+                                 .format(self.parent))
+        self.parent = parent
+        # Calculate connection axis in parent frame
+        default = parent.orientation.rotate(np.array([1., 0., 0.]))
+        # Calculate which axis to rotate about
+        direct = -np.cross(direction, default)
+        # Calculate difference between connection point and front of module
+        angle = np.arccos(direction.dot(default))
+        # Calculate orientation in Euler angles
+        orient = Rot.from_axis(direct, angle)
+        # Update own orientation
+        self.orientation += parent.orientation + orient
 
     def spawn(self):
         """Spawn the module in the physics simulation"""

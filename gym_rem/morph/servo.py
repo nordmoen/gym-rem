@@ -6,6 +6,7 @@ Movable servo module
 from .exception import (NoModuleAttached, ModuleAttached, NoAvailable,
                         ConnectionObstructed)
 from .module import Module
+from gym_rem.utils import Rot
 from enum import Enum
 import numpy as np
 import pybullet as pyb
@@ -23,8 +24,8 @@ class Connection(Enum):
 class Servo(Module):
     """Movable servo module"""
     def __init__(self, theta=0):
-        self.orientation = np.array([-(theta % 4) * (np.pi / 2.0), 0., 0.])
-        self.position = np.array([0., 0., 0.0305])
+        self.orientation = Rot.from_euler(-(theta % 4) * (np.pi / 2.0), 0., 0.)
+        self.position = np.array([0., 0., SIZE[1] / 2.0])
         self._children = {}
 
     @property
@@ -73,7 +74,7 @@ class Servo(Module):
         # Add module as a child
         self._children[key] = module
         # Calculate connection point
-        direction = self._mat.dot(np.array(key.value))
+        direction = self.orientation.rotate(np.array(key.value))
         position = self.position + (direction * SIZE[1]) / 2.
         # Update parent pointer of module
         module.update(self, position, direction)
@@ -90,46 +91,22 @@ class Servo(Module):
         raise NoAvailable("There were no available or non-obstructed free\
                 spaces")
 
-    @property
-    def _mat(self):
-        """Helper method to get orientation as rotation matrix"""
-        quat = pyb.getQuaternionFromEuler(self.orientation)
-        mat = np.reshape(pyb.getMatrixFromQuaternion(quat), (3, 3))
-        return mat
-
     def update(self, parent, pos, direction):
-        if self.parent is not None:
-            raise ModuleAttached("This module already has a parent: {}"
-                                 .format(self.parent))
-        self.parent = parent
-        self.position = pos + (direction * SIZE[0] * 1.1) / 2.
-        angle = np.arccos(direction.dot(np.array([1., 0, 0])))
-        self.orientation = parent.orientation + Servo.to_euler(direction, angle)
+        super().update(parent, pos, direction)
+        # Update center position for self
+        self.position = pos + (direction * SIZE[0]) / 2.
+        # Calculate connection points for joint
         fudge = SIZE[1] / 2.
         self.connection = (direction * fudge,
                            (-fudge, 0., 0.),
                            direction)
-        print(self.connection)
 
     def __repr__(self):
         return "Servo(pos: {}, orient: {})".format(self.position,
                                                    self.orientation)
 
-    @staticmethod
-    def to_euler(axis, angle):
-        """Convert axis angle representation to euler"""
-        x, y, z = axis
-        s = np.sin(angle)
-        c = np.cos(angle)
-        t = 1. - c
-        heading = np.arctan2(y * s - x * z, 1. - (y ** 2 + z**2) * t)
-        attitude = np.arcsin(x * y * t + z * s)
-        bank = np.arctan2(x * s - y * z * t, 1. - (x**2 + z**2) * t)
-        # return bank, -attitude, heading
-        return heading, -attitude, bank
-
     def spawn(self):
-        orient = pyb.getQuaternionFromEuler(self.orientation)
+        orient = self.orientation.as_quat()
         return pyb.loadURDF('servo/Servo.urdf',
                             basePosition=self.position,
                             baseOrientation=orient)

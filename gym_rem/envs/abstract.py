@@ -64,20 +64,21 @@ class ModularEnv(gym.Env):
         pyb.disconnect(self.client)
 
     def reset(self, morphology=None):
-        # To reset simulation we first need to remove any bodies
+        # To reset simulation we first need to remove any modules currently in
+        # the environment
         for m_id in self._modules.values():
             pyb.removeBody(m_id)
         pyb.restoreState(stateId=self.reset_id)
-        overlaps = []
-        if morphology is None:
-            raise TypeError("Morphology cannot be 'None'!")
         # Reset internal state
         self._joints = []
         self._modules = {}
-        self._morphology = morphology.root
+        if morphology is None:
+            raise TypeError("Morphology cannot be 'None'!")
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
+        self._morphology = morphology.root
         queue = [self._morphology]
+        overlaps = []
         while len(queue) > 0:
             module = queue.pop()
             assert isinstance(module, Module), "{} does not inherit\
@@ -85,10 +86,10 @@ class ModularEnv(gym.Env):
             # Spawn module in world
             m_id = module.spawn()
             # Check if the module overlaps
-            # TODO Only check local overlap, no need to check the whole
-            # world
-            overlap = pyb.getOverlappingObjects([-10, -10, 0],
-                                                [10, 10, 10])
+            pos = module.position
+            # We check a small neighbourhood
+            # TODO fix overlap!
+            overlap = pyb.getOverlappingObjects(pos - 2.0, pos + 2.0)
             if m_id in overlap:
                 overlaps.append(module)
                 pyb.removeBody(m_id)
@@ -105,13 +106,14 @@ class ModularEnv(gym.Env):
                 parent_id = self._modules[module.parent]
                 parent_frame = module.connection[0]
                 child_frame = module.connection[1]
+                # TODO: Fix constraint handling
                 pyb.createConstraint(parent_id, -1, m_id, 0,
                                      pyb.JOINT_FIXED,
                                      (1, 0, 0),
                                      parent_frame,
                                      child_frame,
-                                     pyb.getQuaternionFromEuler(module.parent.orientation),
-                                     pyb.getQuaternionFromEuler(module.orientation * -1.))
+                                     module.parent.orientation.as_quat(),
+                                     module.orientation.as_quat())
         return self.observation(), overlaps
 
     def step(self, action):

@@ -5,7 +5,6 @@ Test module for servo.py
 """
 from gym_rem.morph import Servo
 from gym_rem.morph.servo import Connection
-import numpy as np
 import unittest
 
 
@@ -24,7 +23,6 @@ class TestServo(unittest.TestCase):
         b = Servo()
         a += b
         self.assertEqual(b.parent, a)
-        self.assertTrue(np.allclose(b.position, np.array([0., 0.02, 0.01])))
 
     def test_children(self):
         """Test that children property works"""
@@ -56,19 +54,6 @@ class TestServo(unittest.TestCase):
         # Test default orientation
         m = Servo()
         self.assertListEqual(m.available, [c for c in Connection])
-        # Test 90 deg
-        m = Servo(1)
-        self.assertListEqual(m.available,
-                             [Connection.z_plus, Connection.y_minus,
-                              Connection.x_plus])
-        m = Servo(2)
-        self.assertListEqual(m.available,
-                             [Connection.y_plus, Connection.y_minus,
-                              Connection.x_plus])
-        m = Servo(3)
-        self.assertListEqual(m.available,
-                             [Connection.y_plus, Connection.z_plus,
-                              Connection.x_plus])
 
     def test_len(self):
         """Test that superclass '__len__' functions correctly"""
