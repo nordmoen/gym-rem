@@ -106,14 +106,13 @@ class ModularEnv(gym.Env):
                 parent_id = self._modules[module.parent]
                 parent_frame = module.connection[0]
                 child_frame = module.connection[1]
-                # TODO: Fix constraint handling
                 pyb.createConstraint(parent_id, -1, m_id, 0,
                                      pyb.JOINT_FIXED,
                                      (1, 0, 0),
                                      parent_frame,
                                      child_frame,
-                                     module.parent.orientation.as_quat(),
-                                     module.orientation.as_quat())
+                                     module.parent.orientation.T.as_quat(),
+                                     module.orientation.T.as_quat())
         return self.observation(), overlaps
 
     def step(self, action):

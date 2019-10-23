@@ -96,10 +96,9 @@ class Servo(Module):
         # Update center position for self
         self.position = pos + (direction * SIZE[0]) / 2.
         # Calculate connection points for joint
-        fudge = SIZE[1] / 2.
-        self.connection = (direction * fudge,
-                           (-fudge, 0., 0.),
-                           direction)
+        conn = np.array([-SIZE[1] / 2., 0., 0.])
+        parent_conn = parent.orientation.T.rotate(direction * (SIZE[1] / 2.))
+        self.connection = (parent_conn, conn)
 
     def spawn(self):
         orient = self.orientation.as_quat()
