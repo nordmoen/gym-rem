@@ -25,7 +25,9 @@ class Servo(Module):
     """Movable servo module"""
     def __init__(self, theta=0):
         self.orientation = Rot.from_euler(-(theta % 4) * (np.pi / 2.0), 0., 0.)
-        self.position = np.array([0., 0., SIZE[1] / 2.0])
+        # NOTE: The fudge factor is to avoid colliding with the plane once
+        # spawned
+        self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
         self._children = {}
 
     @property

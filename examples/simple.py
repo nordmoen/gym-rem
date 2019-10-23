@@ -4,7 +4,7 @@
 Simple example to show of how to start and simulate a modular robot
 """
 
-from gym_rem.morph.servo import Servo, Connection
+from gym_rem.morph.servo import Servo
 import gym
 import logging
 import numpy as np
@@ -17,14 +17,8 @@ env = gym.make("ModularLocomotion-v0")
 # environment to enable GUI
 env.render()
 # Create modular robot to work with
-robot = Servo(0)
-robot += Servo(1)
-up = robot[Connection.z_plus]
-robot[Connection.x_plus] = Servo()
-up[Connection.z_plus] = Servo()
-up += Servo()
-up += Servo()
-# up += Servo()
+robot = Servo()
+robot += Servo()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
 # Regular old gym loop:

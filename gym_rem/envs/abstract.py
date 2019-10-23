@@ -86,11 +86,10 @@ class ModularEnv(gym.Env):
             # Spawn module in world
             m_id = module.spawn()
             # Check if the module overlaps
-            pos = module.position
-            # We check a small neighbourhood
-            # TODO fix overlap!
-            overlap = pyb.getOverlappingObjects(pos - 2.0, pos + 2.0)
-            if m_id in overlap:
+            aabb_min, aabb_max = pyb.getAABB(m_id)
+            overlap = pyb.getOverlappingObjects(aabb_min, aabb_max)
+            # NOTE: An object always collides with it self
+            if any([u_id != m_id for u_id, _ in overlap]):
                 overlaps.append(module)
                 pyb.removeBody(m_id)
                 continue
