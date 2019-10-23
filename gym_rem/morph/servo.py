@@ -101,10 +101,6 @@ class Servo(Module):
                            (-fudge, 0., 0.),
                            direction)
 
-    def __repr__(self):
-        return "Servo(pos: {}, orient: {})".format(self.position,
-                                                   self.orientation)
-
     def spawn(self):
         orient = self.orientation.as_quat()
         return pyb.loadURDF('servo/Servo.urdf',

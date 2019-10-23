@@ -102,6 +102,10 @@ class Module(object):
         """Attach the child 'module' at the next available attachment point"""
         raise NotImplementedError("Abstract class")
 
+    def __repr__(self):
+        """Create print friendly representation of this module"""
+        return "{}({})".format(self.__class__.__name__, self.position)
+
     def update(self, parent, pos, direction):
         """Update configuration for the module.
 
