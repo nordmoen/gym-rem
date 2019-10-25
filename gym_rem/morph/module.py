@@ -3,7 +3,8 @@
 """
 Abstract module which all morphological modules must extend
 """
-from .exception import ModuleAttached
+from .exception import ModuleAttached, NoAvailable
+from collections import deque
 from gym_rem.utils import Rot
 import numpy as np
 
@@ -18,6 +19,10 @@ class Module(object):
     position = np.zeros(3)
     # Orientation of module
     orientation = Rot.identity()
+    # Axis to rotate module around when attaching
+    connection_axis = np.array([1., 0., 0.])
+    # Connection ID to use when creating constraint
+    connection_id = -1
 
     @property
     def children(self):
@@ -71,9 +76,9 @@ class Module(object):
     def __iter__(self):
         """Iterate all modules connected to this module"""
         yield self
-        queue = [self]
+        queue = deque([self])
         while len(queue) > 0:
-            for child in queue.pop().children:
+            for child in queue.popleft().children:
                 yield child
                 queue.append(child)
 
@@ -100,7 +105,11 @@ class Module(object):
 
     def __iadd__(self, module):
         """Attach the child 'module' at the next available attachment point"""
-        raise NotImplementedError("Not supported")
+        for conn in self.available:
+            self[conn] = module
+            return self
+        raise NoAvailable("There were no available or non-obstructed free\
+                spaces")
 
     def __repr__(self):
         """Create print friendly representation of this module"""
@@ -124,7 +133,7 @@ class Module(object):
         # this module
         if parent is not None:
             # Calculate connection axis in parent frame
-            default = parent.orientation.rotate(np.array([1., 0., 0.]))
+            default = parent.orientation.rotate(self.connection_axis)
             # Calculate which axis to rotate about
             direct = -np.cross(direction, default)
             # Calculate difference between connection point and front of module

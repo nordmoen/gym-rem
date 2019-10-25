@@ -27,16 +27,19 @@ class Rot(object):
     def __add__(self, rot):
         """Combine two rotations creating a new combined rotation of the two"""
         assert isinstance(rot, Rot)
-        return Rot(rot._mat @ self._mat)
+        # return Rot(rot._mat @ self._mat)
+        return Rot(self._mat @ rot._mat)
 
     def __iadd__(self, rot):
         """Add the rotation 'rot' to this rotation"""
         assert isinstance(rot, Rot)
-        self._mat = rot._mat @ self._mat
+        # self._mat = rot._mat @ self._mat
+        self._mat = self._mat @ rot._mat
         return self
 
     def __repr__(self):
-        return "Rot{}".format(self.as_euler())
+        roll, pitch, yaw = self.as_euler()
+        return "Rot({:.2f}, {:.2f}, {:.2f})".format(roll, pitch, yaw)
 
     def as_euler(self):
         """Return the rotation represented as Euler angles"""
@@ -66,7 +69,8 @@ class Rot(object):
             x = (self._mat[2, 1] - self._mat[1, 2]) / s
             y = (self._mat[0, 2] - self._mat[2, 0]) / s
             z = (self._mat[1, 0] - self._mat[0, 1]) / s
-        elif self._mat[0, 0] > self._mat[1, 1] and self._mat[0, 0] > self._mat[2, 2]:
+        elif (self._mat[0, 0] > self._mat[1, 1]
+              and self._mat[0, 0] > self._mat[2, 2]):
             s = 2. * np.sqrt(1. + self._mat[0, 0] - self._mat[1, 1]
                              - self._mat[2, 2])
             w = (self._mat[2, 1] - self._mat[1, 2]) / s

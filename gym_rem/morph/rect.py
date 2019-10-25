@@ -1,38 +1,40 @@
 #!/usr/bin/env python
 
 """
-Movable servo module
+Non-movable Rectangle module
 """
-from .exception import (NoModuleAttached, ModuleAttached, NoAvailable,
-                        ConnectionObstructed)
+from .exception import NoModuleAttached, ModuleAttached, ConnectionObstructed
 from .module import Module
-from gym_rem.utils import Rot
 from enum import Enum
+from gym_rem.utils import Rot
 import numpy as np
 import pybullet as pyb
 
-# Size of this module
-SIZE = np.array([0.103, 0.061])
+# GLOBAL shape and collision caches
+COLL_CACHE = {}
 
 
 class Connection(Enum):
-    z_plus = (0., 0., 1.)
-    z_minus = (0., 0., -1.)
     x_plus = (1., 0., 0.)
+    y_plus = (0., 1., 0.)
+    x_minus = (-1., 0., 0.)
+    y_minus = (0., -1., 0.)
+    z_plus = (0., 0., 1.)
 
 
-class Servo(Module):
-    """Movable servo module"""
-    def __init__(self, theta=0):
+class Rect(Module):
+    """Non-movable rectangle module"""
+    def __init__(self, theta=0, size=(0.061, 0.061, 0.061)):
         self.theta = theta % 4
-        self.connection_axis = np.array([1., 0., 0.])
+        self.size = np.array(size)
+        assert self.size.shape == (3,), "Size must be a 3 element vector!"
+        self.connection_axis = np.array([0., 0., 1.])
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * (np.pi / 2.0))
+                                         -self.theta * (np.pi / 2.))
         # NOTE: The fudge factor is to avoid colliding with the plane once
         # spawned
-        self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
+        self.position = np.array([0., 0., self.size[2] / 2. + 0.002])
         self._children = {}
-        self.connection_id = 0
 
     def rotate(self, theta):
         """Update rotation about connection axis"""
@@ -56,12 +58,6 @@ class Servo(Module):
             if conn not in self._children:
                 res.append(conn)
         return res
-
-    @property
-    def joint(self):
-        return {'controlMode': pyb.POSITION_CONTROL,
-                'jointIndex': 0,
-                'maxVelocity': 10.6}
 
     def __getitem__(self, key):
         if not isinstance(key, Connection):
@@ -105,7 +101,7 @@ class Servo(Module):
         self._children[key] = module
         # Calculate connection point
         direction = self.orientation.rotate(np.array(key.value))
-        position = self.position + (direction * SIZE[1]) / 2.
+        position = self.position + (direction * self.size) / 2.
         # Update parent pointer of module
         module.update(self, position, direction)
 
@@ -115,7 +111,7 @@ class Servo(Module):
         self.orientation = Rot.from_axis(self.connection_axis,
                                          -self.theta * (np.pi / 2.))
         # Update position in case parent is None
-        self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
+        self.position = np.array([0., 0., self.size[2] / 2. + 0.002])
         # Reset connection in case parent is None
         self.connection = None
         # Call super to update orientation
@@ -123,22 +119,30 @@ class Servo(Module):
         # If parent is not None we need to update position and connection point
         if self.parent is not None:
             # Update center position for self
-            self.position = pos + (direction * SIZE[0]) / 2.
+            # NOTE: We add a little fudge factor to avoid overlap
+            self.position = pos + (direction * self.size * 1.01) / 2.
             # Calculate connection points for joint
-            conn = np.array([-SIZE[1] / 2., 0., 0.])
+            conn = np.array([0., 0., -self.size[2] / 2.])
             parent_conn = parent.orientation.T.rotate(pos - parent.position)
             self.connection = (parent_conn, conn)
+            print(self.orientation.as_quat())
         # Update potential children
         self.update_children()
 
     def update_children(self):
         for conn in self._children:
             direction = self.orientation.rotate(np.array(conn.value))
-            position = self.position + (direction * SIZE[1]) / 2.
+            position = self.position + (direction * self.size) / 2.
             self._children[conn].update(self, position, direction)
 
     def spawn(self):
+        global COLL_CACHE
         orient = self.orientation.as_quat()
-        return pyb.loadURDF('servo/Servo.urdf',
-                            basePosition=self.position,
-                            baseOrientation=orient)
+        size = tuple(self.size)
+        if size not in COLL_CACHE:
+            cuid = pyb.createCollisionShape(pyb.GEOM_BOX,
+                                            halfExtents=self.size / 2.)
+            COLL_CACHE[size] = cuid
+        return pyb.createMultiBody(0.1, COLL_CACHE[size],
+                                   basePosition=self.position,
+                                   baseOrientation=orient)

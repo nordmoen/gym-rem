@@ -6,7 +6,8 @@ Abstract modular environment.
 Use this abstraction to implement new environments
 """
 
-from gym_rem.morph import Servo, Module
+from collections import deque
+from gym_rem.morph import Module
 import gym
 import logging
 import numpy as np
@@ -77,10 +78,10 @@ class ModularEnv(gym.Env):
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
         self._morphology = morphology.root
-        queue = [self._morphology]
+        queue = deque([self._morphology])
         overlaps = []
         while len(queue) > 0:
-            module = queue.pop()
+            module = queue.popleft()
             assert isinstance(module, Module), "{} does not inherit\
                     from Module".format(module)
             # Spawn module in world
@@ -103,13 +104,11 @@ class ModularEnv(gym.Env):
             # Create constraint so that modules are connected
             if module.parent is not None:
                 parent_id = self._modules[module.parent]
-                parent_frame = module.connection[0]
-                child_frame = module.connection[1]
-                pyb.createConstraint(parent_id, -1, m_id, 0,
+                pyb.createConstraint(parent_id, -1, m_id, module.connection_id,
                                      pyb.JOINT_FIXED,
-                                     (1, 0, 0),
-                                     parent_frame,
-                                     child_frame,
+                                     module.connection_axis,
+                                     module.connection[0],
+                                     module.connection[1],
                                      module.parent.orientation.T.as_quat(),
                                      module.orientation.T.as_quat())
         return self.observation(), overlaps

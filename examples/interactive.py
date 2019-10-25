@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-Simple example to show of how to start and simulate a modular robot
+Simple example to easy play with morphologies interactively
 """
-from gym_rem.morph import Servo
+from gym_rem.morph import Servo, Rect
 import gym
-import numpy as np
+import time
 
 
 # Create environment
@@ -14,16 +14,21 @@ env = gym.make("ModularLocomotion-v0")
 # environment to enable GUI
 env.render()
 # Create modular robot to work with
-robot = Servo()
+robot = Rect()
 robot += Servo()
+robot += Servo()
+robot += Servo()
+robot += Servo()
+up = Servo()
+robot += up
+up += Rect()
+up += Rect()
+up += Rect()
+# robot += Rect()
+# robot += Rect()
+# robot += Rect()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
-# Regular old gym loop:
-i = 0
-num_sec = 240. * 4.
 while True:
-    cmd = np.sin(i / num_sec) * 1.57
-    action = np.ones(len(robot)) * cmd
-    env.step(action)
     env.render()
-    i += 1
+    time.sleep(0.1)
