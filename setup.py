@@ -9,7 +9,4 @@ setup(name='gym_rem',
       author_email="jorgehn@ifi.uio.no",
       include_package_data=True,
       install_requires=['gym>=0.15', 'pybullet>=2.5', 'numpy>=1.17'],
-      test_suite='tests',
-      extras_require={
-          'color': ['termcolor>= 1.1']
-      })
+      test_suite='tests')

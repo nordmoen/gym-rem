@@ -127,3 +127,8 @@ class Rot(object):
         mat += 2. * q_dot.dot(q_dot.T)
         mat += 2. * q_w * q
         return Rot(mat)
+
+    @staticmethod
+    def identity():
+        """Create a default rotation"""
+        return Rot(np.identity(3))

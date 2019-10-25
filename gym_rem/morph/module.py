@@ -17,7 +17,7 @@ class Module(object):
     # Center position of module in global space
     position = np.zeros(3)
     # Orientation of module
-    orientation = Rot.from_euler(0, 0, 0)
+    orientation = Rot.identity()
 
     @property
     def children(self):
@@ -88,46 +88,56 @@ class Module(object):
 
     def __getitem__(self, key):
         """Return the child connected at 'key'"""
-        raise NotImplementedError("Abstract class")
+        raise NotImplementedError("Not supported")
 
     def __delitem__(self, key):
         """Remove the connection to child connected at 'key'"""
-        raise NotImplementedError("Abstract class")
+        raise NotImplementedError("Not supported")
 
     def __setitem__(self, key, module):
         """Attached the child 'module' at the point 'key'"""
-        raise NotImplementedError("Abstract class")
+        raise NotImplementedError("Not supported")
 
     def __iadd__(self, module):
         """Attach the child 'module' at the next available attachment point"""
-        raise NotImplementedError("Abstract class")
+        raise NotImplementedError("Not supported")
 
     def __repr__(self):
         """Create print friendly representation of this module"""
         return "{}({})".format(self.__class__.__name__, self.position)
 
-    def update(self, parent, pos, direction):
+    def update(self, parent=None, pos=None, direction=None):
         """Update configuration for the module.
 
         This function should update the parent pointer and internal position of
         the module. The 'pos' argument is the central point where this module
         connects to parent. The 'direction' argument is a vector pointing in
-        the direction the module should be attached at."""
-        if self.parent is not None:
+        the direction the module should be attached at.
+
+        If no arguments are given it indicates an update back to center
+        position."""
+        if self.parent is not None and parent != self.parent:
             raise ModuleAttached("This module already has a parent: {}"
                                  .format(self.parent))
         self.parent = parent
-        # Calculate connection axis in parent frame
-        default = parent.orientation.rotate(np.array([1., 0., 0.]))
-        # Calculate which axis to rotate about
-        direct = -np.cross(direction, default)
-        # Calculate difference between connection point and front of module
-        angle = np.arccos(direction.dot(default))
-        # Calculate orientation in Euler angles
-        orient = Rot.from_axis(direct, angle)
-        # Update own orientation
-        self.orientation += parent.orientation + orient
+        # NOTE: We accept 'None' parents which could indicate a detachment of
+        # this module
+        if parent is not None:
+            # Calculate connection axis in parent frame
+            default = parent.orientation.rotate(np.array([1., 0., 0.]))
+            # Calculate which axis to rotate about
+            direct = -np.cross(direction, default)
+            # Calculate difference between connection point and front of module
+            angle = np.arccos(direction.dot(default))
+            # Calculate orientation in Euler angles
+            orient = Rot.from_axis(direct, angle)
+            # Update own orientation
+            self.orientation += parent.orientation + orient
+
+    def update_children(self):
+        """Update all child modules of self"""
+        raise NotImplementedError("Not supported")
 
     def spawn(self):
         """Spawn the module in the physics simulation"""
-        raise NotImplementedError("Abstract class")
+        raise NotImplementedError("Not supported")

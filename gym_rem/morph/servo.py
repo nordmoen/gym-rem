@@ -24,11 +24,20 @@ class Connection(Enum):
 class Servo(Module):
     """Movable servo module"""
     def __init__(self, theta=0):
-        self.orientation = Rot.from_euler(-(theta % 4) * (np.pi / 2.0), 0., 0.)
+        self.theta = theta % 4
+        self.orientation = Rot.from_axis(np.array([1., 0., 0.]),
+                                         -self.theta * (np.pi / 2.0))
         # NOTE: The fudge factor is to avoid colliding with the plane once
         # spawned
         self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
         self._children = {}
+
+    def rotate(self, theta):
+        """Update rotation about connection axis"""
+        self.theta = (self.theta + theta) % 4
+        axis = self.orientation.rotate(np.array([1., 0., 0.]))
+        self.orientation += Rot.from_axis(axis, -self.theta * (np.pi / 2.))
+        self.update_children()
 
     @property
     def children(self):
@@ -60,11 +69,28 @@ class Servo(Module):
         return self._children[key]
 
     def __delitem__(self, key):
-        if not isinstance(key, Connection):
-            raise TypeError("Key: '{}' is not a Connection type".format(key))
+        # Check that 'key' is correct type
+        if not (isinstance(key, Connection) or isinstance(key, Module)):
+            raise TypeError("Key: '{}' is not a supported type".format(key))
+        # If we are asked to delete a module from our self
+        if isinstance(key, Module):
+            for conn, child in self._children.items():
+                if child == key:
+                    key = conn
+                    break
+            else:
+                # The module is not a child of this servo
+                raise KeyError("Module: {} has no child module: {}"
+                               .format(self, key))
+        # Check if key is in children
         if key not in self._children:
             raise NoModuleAttached("No module attached at: {}".format(key))
+        # First get reference to child so that we can update
+        child = self._children[key]
+        # Delete child from our children
         del self._children[key]
+        # Update child so that its position and orientation is updated
+        child.update()
 
     def __setitem__(self, key, module):
         if not isinstance(key, Connection):
@@ -93,14 +119,33 @@ class Servo(Module):
         raise NoAvailable("There were no available or non-obstructed free\
                 spaces")
 
-    def update(self, parent, pos, direction):
+    def update(self, parent=None, pos=None, direction=None):
+        # Update own orientation first in case we have been previously
+        # connected
+        self.orientation = Rot.from_axis(np.array([1., 0., 0.]),
+                                         -self.theta * (np.pi / 2.))
+        # Update position in case parent is None
+        self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
+        # Reset connection in case parent is None
+        self.connection = None
+        # Call super to update orientation
         super().update(parent, pos, direction)
-        # Update center position for self
-        self.position = pos + (direction * SIZE[0]) / 2.
-        # Calculate connection points for joint
-        conn = np.array([-SIZE[1] / 2., 0., 0.])
-        parent_conn = parent.orientation.T.rotate(direction * (SIZE[1] / 2.))
-        self.connection = (parent_conn, conn)
+        # If parent is not None we need to update position and connection point
+        if self.parent is not None:
+            # Update center position for self
+            self.position = pos + (direction * SIZE[0]) / 2.
+            # Calculate connection points for joint
+            conn = np.array([-SIZE[1] / 2., 0., 0.])
+            parent_conn = parent.orientation.T.rotate(direction * (SIZE[1] / 2.))
+            self.connection = (parent_conn, conn)
+        # Update potential children
+        self.update_children()
+
+    def update_children(self):
+        for conn in self._children:
+            direction = self.orientation.rotate(np.array(conn.value))
+            position = self.position + (direction * SIZE[1]) / 2.
+            self._children[conn].update(self, position, direction)
 
     def spawn(self):
         orient = self.orientation.as_quat()
