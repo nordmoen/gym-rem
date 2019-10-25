@@ -132,16 +132,24 @@ class Module(object):
         # NOTE: We accept 'None' parents which could indicate a detachment of
         # this module
         if parent is not None:
-            # Calculate connection axis in parent frame
-            default = parent.orientation.rotate(self.connection_axis)
-            # Calculate which axis to rotate about
-            direct = -np.cross(direction, default)
-            # Calculate difference between connection point and front of module
-            angle = np.arccos(direction.dot(default))
-            # Calculate orientation in Euler angles
-            orient = Rot.from_axis(direct, angle)
+            # The below equation rotates the 'connection_axis' parameter to
+            # look in the same direction as 'direction'
+            v = np.cross(self.connection_axis, direction)
+            c = self.connection_axis.dot(direction)
+            skew = np.array([[0., -v[2], v[1]],
+                             [v[2], 0., -v[0]],
+                             [-v[1], v[0], 0.]])
+            if 1. + c != 0.:
+                orient = Rot(np.identity(3) + skew
+                             + skew.dot(skew) * (1. / (1. + c)))
+            else:
+                # This means that 'connection_axis' and 'direction' point in
+                # the same direction, to convert we can simply flip one axis
+                # and rotate by pi
+                orient = Rot.from_axis(np.flip(self.connection_axis), np.pi)
             # Update own orientation
-            self.orientation += parent.orientation + orient
+            # self.orientation += parent.orientation + orient
+            self.orientation += orient
 
     def update_children(self):
         """Update all child modules of self"""

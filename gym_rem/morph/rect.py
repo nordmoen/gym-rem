@@ -125,7 +125,6 @@ class Rect(Module):
             conn = np.array([0., 0., -self.size[2] / 2.])
             parent_conn = parent.orientation.T.rotate(pos - parent.position)
             self.connection = (parent_conn, conn)
-            print(self.orientation.as_quat())
         # Update potential children
         self.update_children()
 
