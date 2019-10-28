@@ -3,6 +3,7 @@
 """
 Unittests for morphology 'Module'
 """
+from gym_rem.morph.exception import NoAvailable
 from gym_rem.morph import Module
 from gym_rem.utils import Rot
 import numpy as np
@@ -68,7 +69,7 @@ class TestMorpModule(unittest.TestCase):
     def test_iadd(self):
         """Ensure that abstract module supports '+=' access"""
         m = Module()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NoAvailable):
             m += None
 
     def test_available(self):

@@ -63,6 +63,12 @@ class Servo(Module):
                 'jointIndex': 0,
                 'maxVelocity': 10.6}
 
+    def __contains__(self, item):
+        if isinstance(item, Connection):
+            return item in self._children.keys()
+        else:
+            return super().__contains__(item)
+
     def __getitem__(self, key):
         if not isinstance(key, Connection):
             raise TypeError("Key: '{}' is not a Connection type".format(key))

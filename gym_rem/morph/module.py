@@ -82,6 +82,12 @@ class Module(object):
                 yield child
                 queue.append(child)
 
+    def __contains__(self, item):
+        """Check if the module 'item' is connected to this module"""
+        if not isinstance(item, Module):
+            raise TypeError("Cannot connect {} to modules".format(item))
+        return item in self.children
+
     def __len__(self):
         """
         Get the size of the morphology represented by this module.

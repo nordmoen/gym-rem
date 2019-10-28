@@ -83,6 +83,24 @@ class TestServo(unittest.TestCase):
         self.assertEqual(a.root, d)
         self.assertEqual(c.root, d)
 
+    def test_contains(self):
+        """Test that 'in' functions for modules"""
+        a = Servo()
+        b = Servo()
+        a += b
+        self.assertIn(b, a)
+        self.assertIn(Connection.z_plus, a)
+        self.assertNotIn(Connection.z_minus, a)
+        c = Servo()
+        self.assertNotIn(c, a)
+        a += c
+        self.assertIn(c, a)
+        with self.assertRaises(TypeError):
+            None in a
+            1.0 in a
+            1 in a
+            {} in a
+
 
 if __name__ == '__main__':
     unittest.main()

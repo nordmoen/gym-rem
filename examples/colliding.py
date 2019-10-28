@@ -19,6 +19,7 @@ env.render()
 # Create modular robot to work with
 robot = Servo()
 robot += Servo()
+robot += Servo()
 robot[Connection.x_plus] = Servo()
 up = robot[Connection.z_plus]
 up[Connection.z_minus] = Servo()
