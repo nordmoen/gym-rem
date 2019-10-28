@@ -55,9 +55,6 @@ class ModularEnv(gym.Env):
         self.log.debug("Loading ground plane")
         self.plane_id = pyb.loadURDF('plane/plane.urdf')
         assert self.plane_id >= 0, "Could not load 'plane.urdf'"
-        # Setup reset point so that we can quickly reset simulation
-        self.reset_id = pyb.saveState()
-        assert self.reset_id >= 0, "Could not create save state in memory"
         self.log.debug("Gym environment setup complete")
 
     def close(self):
@@ -65,11 +62,8 @@ class ModularEnv(gym.Env):
         pyb.disconnect(self.client)
 
     def reset(self, morphology=None):
-        # To reset simulation we first need to remove any modules currently in
-        # the environment
-        for m_id in self._modules.values():
-            pyb.removeBody(m_id)
-        pyb.restoreState(stateId=self.reset_id)
+        # Reset the environment by running all setup code again
+        self.setup()
         # Reset internal state
         self._joints = []
         self._modules = {}
@@ -111,6 +105,10 @@ class ModularEnv(gym.Env):
                                      module.connection[1],
                                      module.parent.orientation.T.as_quat(),
                                      module.orientation.T.as_quat())
+        if len(self._modules) == 0:
+            # This is a bad sign and it can be difficult to debug because the
+            # error occurs much later than here
+            raise RuntimeError("No modules were spawned from morphology!")
         return self.observation(), overlaps
 
     def step(self, action):
@@ -149,9 +147,9 @@ class ModularEnv(gym.Env):
         # Extract ID of root
         m_id = self._modules[self._morphology]
         # Get state of root link
-        state = pyb.getLinkState(m_id, 0)
+        pos, _ = pyb.getBasePositionAndOrientation(m_id)
         # Extract position
-        position = np.array(state[0])
+        position = np.array(pos)
         # We are only interested in distance in (X, Y)
         position[-1] = 0.0
         # Return the root's distance from World center

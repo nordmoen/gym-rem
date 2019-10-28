@@ -8,7 +8,6 @@ from gym_rem.envs import ModularEnv
 from gym_rem.morph.servo import Servo, Connection
 import argparse
 import numpy as np
-import pybullet as pyb
 import timeit
 
 
@@ -31,7 +30,7 @@ for _ in range(args.length - 1):
 # Create global variables to pass to testing
 glob = {'env': env, 'action': np.zeros(args.length), 'morph': root}
 # Access timestep of PyBullet
-dt = pyb.getPhysicsEngineParameters()['fixedTimeStep']
+dt = env.dt
 # Run timings
 num = args.number
 fnum = float(num)

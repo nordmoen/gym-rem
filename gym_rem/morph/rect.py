@@ -10,9 +10,6 @@ from gym_rem.utils import Rot
 import numpy as np
 import pybullet as pyb
 
-# GLOBAL shape and collision caches
-COLL_CACHE = {}
-
 
 class Connection(Enum):
     x_plus = (1., 0., 0.)
@@ -135,13 +132,9 @@ class Rect(Module):
             self._children[conn].update(self, position, direction)
 
     def spawn(self):
-        global COLL_CACHE
         orient = self.orientation.as_quat()
-        size = tuple(self.size)
-        if size not in COLL_CACHE:
-            cuid = pyb.createCollisionShape(pyb.GEOM_BOX,
-                                            halfExtents=self.size / 2.)
-            COLL_CACHE[size] = cuid
-        return pyb.createMultiBody(0.1, COLL_CACHE[size],
+        cuid = pyb.createCollisionShape(pyb.GEOM_BOX,
+                                        halfExtents=self.size / 2.)
+        return pyb.createMultiBody(0.1, cuid,
                                    basePosition=self.position,
                                    baseOrientation=orient)
