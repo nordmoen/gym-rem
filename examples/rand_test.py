@@ -33,7 +33,6 @@ def _create_random(max_size):
     return root
 
 
-np.random.seed(1234)
 # Create a quick and dirty argument parser
 parser = argparse.ArgumentParser("gym_rem:random")
 parser.add_argument('--number', '-n', type=int, default=1000,
@@ -46,7 +45,11 @@ parser.add_argument('--gui', '-g', action='store_true',
                     help="Show GUI")
 parser.add_argument('--quiet', '-q', action='store_true',
                     help="Do not show progress")
+parser.add_argument('--seed', type=int, default=1234,
+                    help="Random seed")
 args = parser.parse_args()
+# Set seed for reproducibility
+np.random.seed(args.seed)
 # Create default environment
 env = ModularEnv()
 if args.gui:
