@@ -1,6 +1,8 @@
-# Robotics, Evolution and Modularity (REM)
+# Robotics, Evolution and Modularity (`REM`)
 This package implement a modular robotics environment for
 [`openai-gym`](https://gym.openai.com/).
+
+![Example modular robot](modular_robot.png)
 
 ## Example
 ```python
@@ -47,3 +49,11 @@ $ pip install -U -e .
 ## Testing
 We try to include a test suite so that it is easy to develop this package
 further. To run it use `python setup.py test` to run all tests.
+
+## Tools
+In the [examples](./examples) folder you can find some useful tools to checkout
+both performance and inspect individuals. The
+[`benchmark`](./examples/benchmark.py) example can be run to estimate
+performance of this package in your compute environment. With the
+[`inspect`](./examples/inspect.py) example you can load and inspect morphologies
+stored using [`pickle`](https://docs.python.org/3/library/pickle.html).
