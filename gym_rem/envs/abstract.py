@@ -35,7 +35,9 @@ class ModularEnv(gym.Env):
         pyb.setAdditionalSearchPath(ASSET_PATH)
         self._modules = {}
         self._joints = []
+        # Stored for user interactions
         self._morphology = None
+        self._max_size = None
         # Used for user interaction:
         self._real_time = False
         # Run setup
@@ -61,17 +63,21 @@ class ModularEnv(gym.Env):
         self.log.debug("Closing environment")
         pyb.disconnect(self.client)
 
-    def reset(self, morphology=None):
+    def reset(self, morphology=None, max_size=None):
         # Reset the environment by running all setup code again
         self.setup()
         # Reset internal state
         self._joints = []
         self._modules = {}
+        # Check method arguments for simple logic errors
         if morphology is None:
             raise TypeError("Morphology cannot be 'None'!")
+        if max_size is not None and max_size < 1:
+            raise ValueError("'max_size' must be larger than 1")
+        self._morphology = morphology.root
+        self._max_size = max_size
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
-        self._morphology = morphology.root
         queue = deque([self._morphology])
         overlaps = []
         while len(queue) > 0:
@@ -105,6 +111,12 @@ class ModularEnv(gym.Env):
                                      module.connection[1],
                                      module.parent.orientation.T.as_quat(),
                                      module.orientation.T.as_quat())
+            # Check size constraints
+            if max_size is not None and len(self._modules) >= max_size:
+                # If we are above max desired spawn size add overflow to
+                # overlap and break from loop
+                overlaps.extend(queue)
+                break
         if len(self._modules) == 0:
             # This is a bad sign and it can be difficult to debug because the
             # error occurs much later than here
@@ -198,4 +210,4 @@ class ModularEnv(gym.Env):
         # if 'r' is pressed we restart simulation
         r = ord('r')
         if r in keys and keys[r] & pyb.KEY_WAS_TRIGGERED:
-            self.reset(self._morphology)
+            self.reset(self._morphology, self._max_size)
