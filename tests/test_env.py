@@ -21,8 +21,8 @@ class TestModularEnv(unittest.TestCase):
         overflow = Servo()
         robot += overflow
         robot += Servo()
-        _, rest = env.reset(robot)
-        self.assertListEqual(rest, [overflow])
+        env.reset(robot)
+        self.assertLess(len(env.morphology), len(robot))
 
 
 if __name__ == '__main__':

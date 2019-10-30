@@ -139,7 +139,7 @@ class Module(object):
 
         If no arguments are given it indicates an update back to center
         position."""
-        if self.parent is not None and parent != self.parent:
+        if parent is not None and self.parent is not None and parent != self.parent:
             raise ModuleAttached("This module already has a parent: {}"
                                  .format(self.parent))
         self.parent = parent

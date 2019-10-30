@@ -8,6 +8,7 @@ Use this abstraction to implement new environments
 
 from collections import deque
 from gym_rem.morph import Module
+import copy
 import gym
 import logging
 import numpy as np
@@ -22,7 +23,7 @@ ASSET_PATH = os.path.join(os.path.dirname(__file__), "../../assets")
 class ModularEnv(gym.Env):
     """Abstract modular environment"""
 
-    metadata = {'render.modes': ['human'], 'video.frames_per_second': 60}
+    metadata = {'render.modes': ['human'], 'video.frames_per_second': 240}
 
     def __init__(self):
         # Create logger for easy logging output
@@ -36,7 +37,7 @@ class ModularEnv(gym.Env):
         self._modules = {}
         self._joints = []
         # Stored for user interactions
-        self._morphology = None
+        self.morphology = None
         self._max_size = None
         # Used for user interaction:
         self._real_time = False
@@ -73,12 +74,11 @@ class ModularEnv(gym.Env):
             raise TypeError("Morphology cannot be 'None'!")
         if max_size is not None and max_size < 1:
             raise ValueError("'max_size' must be larger than 1")
-        self._morphology = morphology.root
+        self.morphology = copy.deepcopy(morphology.root)
         self._max_size = max_size
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
-        queue = deque([self._morphology])
-        overlaps = []
+        queue = deque([self.morphology])
         while len(queue) > 0:
             module = queue.popleft()
             assert isinstance(module, Module), "{} does not inherit\
@@ -98,8 +98,11 @@ class ModularEnv(gym.Env):
                                      for u_id, _ in plane_overlap])
             # If overlap is detected de-spawn module and continue
             if overlapping_modules or overlapping_plane:
-                overlaps.append(module)
+                # Remove from simulation
                 pyb.removeBody(m_id)
+                # Remove from our private copy
+                parent = module.parent
+                del parent[module]
                 continue
             # If not we continue to place it in the environment
             self._modules[module] = m_id
@@ -120,15 +123,16 @@ class ModularEnv(gym.Env):
                                      module.orientation.T.as_quat())
             # Check size constraints
             if max_size is not None and len(self._modules) >= max_size:
-                # If we are above max desired spawn size add overflow to
-                # overlap and break from loop
-                overlaps.extend(queue)
+                # If we are above max desired spawn size drain queue and remove
+                for module in queue:
+                    parent = module.parent
+                    del parent[module]
                 break
         if len(self._modules) == 0:
             # This is a bad sign and it can be difficult to debug because the
             # error occurs much later than here
             raise RuntimeError("No modules were spawned from morphology!")
-        return self.observation(), overlaps
+        return self.observation()
 
     def step(self, action):
         assert action.shape[0] == len(self._joints), 'Action not equal to\
@@ -164,7 +168,7 @@ class ModularEnv(gym.Env):
     def reward(self):
         """Estimate current reward"""
         # Extract ID of root
-        m_id = self._modules[self._morphology]
+        m_id = self._modules[self.morphology]
         # Get state of root link
         pos, _ = pyb.getBasePositionAndOrientation(m_id)
         # Extract position
@@ -216,4 +220,4 @@ class ModularEnv(gym.Env):
         # if 'r' is pressed we restart simulation
         r = ord('r')
         if r in keys and keys[r] & pyb.KEY_WAS_TRIGGERED:
-            self.reset(self._morphology, self._max_size)
+            self.reset(self.morphology, self._max_size)
