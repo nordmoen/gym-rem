@@ -42,7 +42,6 @@ class ModularEnv(gym.Env):
         self._real_time = False
         # Run setup
         self.log.info("Creating modular environment")
-        self.setup()
 
     def setup(self):
         """Helper method to initialize default environment"""
@@ -182,7 +181,6 @@ class ModularEnv(gym.Env):
             self.close()
             self.log.debug("Starting GUI instance")
             self.client = pyb.connect(pyb.GUI)
-            self.log.debug("Setting up GUI instance")
             self.setup()
             self._last_render = time.time()
             pyb.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))

@@ -34,6 +34,11 @@ dt = env.dt
 # Run timings
 num = args.number
 fnum = float(num)
+create_num = timeit.timeit("_ = ModularEnv()",
+                           setup="from gym_rem.envs import ModularEnv",
+                           number=20)
+create_num /= 20.0
+print("'ModularEnv()':\t\t\t{:.3f} milliseconds".format(create_num * 1000.))
 reset_num = timeit.timeit("env.reset(morph)", number=num, globals=glob)
 reset_num /= fnum
 print("'env.reset(...)':\t\t{:.3f} milliseconds".format(reset_num * 1000.))
