@@ -56,6 +56,14 @@ class Rect(Module):
                 res.append(conn)
         return res
 
+    def connection_point(self, item):
+        if not isinstance(item, Module):
+            raise TypeError("Cannot connect {} to modules".format(item))
+        for conn, child in self._children.items():
+            if child == item:
+                return conn
+        raise KeyError("This module has no child: '{}'".format(item))
+
     def __contains__(self, item):
         if isinstance(item, Connection):
             return item in self._children.keys()

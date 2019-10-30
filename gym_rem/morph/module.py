@@ -73,6 +73,14 @@ class Module(object):
             else:
                 queue = queue.parent
 
+    def connection_point(self, item):
+        """Get the connection point associated with 'item'"""
+        if not isinstance(item, Module):
+            raise TypeError("Cannot connect {} to modules".format(item))
+        if item not in self:
+            raise KeyError("This module has no child: '{}'".format(item))
+        raise NotImplementedError("Not supported")
+
     def __iter__(self):
         """Iterate all modules connected to this module"""
         yield self
