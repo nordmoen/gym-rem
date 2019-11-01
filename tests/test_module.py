@@ -51,14 +51,12 @@ class TestMorpModule(unittest.TestCase):
     def test_get(self):
         """Ensure that abstract module supports '[]' access"""
         m = Module()
-        with self.assertRaises(NotImplementedError):
-            m[None]
+        self.assertTrue(hasattr(m, '__getitem__'))
 
     def test_del(self):
         """Ensure that abstract module supports 'del []' access"""
         m = Module()
-        with self.assertRaises(NotImplementedError):
-            del m[None]
+        self.assertTrue(hasattr(m, '__delitem__'))
 
     def test_set(self):
         """Ensure that abstract module supports '[key] = value' access"""

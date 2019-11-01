@@ -39,6 +39,10 @@ create_num = timeit.timeit("_ = ModularEnv()",
                            number=20)
 create_num /= 20.0
 print("'ModularEnv()':\t\t\t{:.3f} milliseconds".format(create_num * 1000.))
+copy_num = timeit.timeit("copy.deepcopy(morph)", setup="import copy",
+                         number=num, globals=glob)
+copy_num /= fnum
+print("'copy.deepcopy(...)':\t\t{:.3f} milliseconds".format(copy_num * 1000.))
 reset_num = timeit.timeit("env.reset(morph)", number=num, globals=glob)
 reset_num /= fnum
 print("'env.reset(...)':\t\t{:.3f} milliseconds".format(reset_num * 1000.))

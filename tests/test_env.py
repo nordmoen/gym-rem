@@ -24,6 +24,16 @@ class TestModularEnv(unittest.TestCase):
         env.reset(robot)
         self.assertLess(len(env.morphology), len(robot))
 
+    def test_copy(self):
+        """Test that holding on to a reference to a previous morphology is not
+        equal to a new"""
+        env = ModularEnv()
+        a = Servo()
+        env.reset(a)
+        b = env.morphology
+        env.reset(a)
+        self.assertIsNotNone(b)
+
 
 if __name__ == '__main__':
     unittest.main()

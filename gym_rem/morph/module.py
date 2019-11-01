@@ -3,7 +3,7 @@
 """
 Abstract module which all morphological modules must extend
 """
-from .exception import ModuleAttached, NoAvailable
+from .exception import ModuleAttached, NoAvailable, NoModuleAttached
 from collections import deque
 from gym_rem.utils import Rot
 import numpy as np
@@ -21,8 +21,13 @@ class Module(object):
     orientation = Rot.identity()
     # Axis to rotate module around when attaching
     connection_axis = np.array([1., 0., 0.])
+    # Subclasses should point their respective connection classes here
+    connection_type = None
     # Connection ID to use when creating constraint
     connection_id = -1
+    # Dictionary of children, defined here to make abstract methods more
+    # powerful
+    _children = None
 
     @property
     def children(self):
@@ -32,7 +37,12 @@ class Module(object):
         This is different from '__iter__' in that this method only returns the
         children directly connected to this module and not their children.
         """
-        return []
+        res = []
+        if self.connection_type:
+            for conn in self.connection_type:
+                if conn in self._children:
+                    res.append(self._children[conn])
+        return res
 
     @property
     def available(self):
@@ -43,7 +53,12 @@ class Module(object):
         This function should return a list of items corresponding to this
         modules access type.
         """
-        return []
+        res = []
+        if self.connection_type:
+            for conn in self.connection_type:
+                if conn not in self._children:
+                    res.append(conn)
+        return res
 
     @property
     def joint(self):
@@ -70,31 +85,35 @@ class Module(object):
         while True:
             if queue.parent is None:
                 return queue
-            else:
-                queue = queue.parent
+            queue = queue.parent
 
     def connection_point(self, item):
         """Get the connection point associated with 'item'"""
-        if not isinstance(item, Module):
+        if not isinstance(item, (Module, self.connection_type)):
             raise TypeError("Cannot connect {} to modules".format(item))
         if item not in self:
             raise KeyError("This module has no child: '{}'".format(item))
-        raise NotImplementedError("Not supported")
+        for conn, child in self._children.items():
+            if child == item:
+                return conn
+        raise KeyError("This module has no child: '{}'".format(item))
 
     def __iter__(self):
         """Iterate all modules connected to this module"""
         yield self
         queue = deque([self])
-        while len(queue) > 0:
+        while queue:
             for child in queue.popleft().children:
                 yield child
                 queue.append(child)
 
     def __contains__(self, item):
         """Check if the module 'item' is connected to this module"""
-        if not isinstance(item, Module):
-            raise TypeError("Cannot connect {} to modules".format(item))
-        return item in self.children
+        if isinstance(item, Module):
+            return item in self._children.values()
+        if self.connection_type and isinstance(item, self.connection_type):
+            return item in self._children.keys()
+        raise TypeError("Cannot connect {} to modules".format(item))
 
     def __len__(self):
         """
@@ -107,11 +126,30 @@ class Module(object):
 
     def __getitem__(self, key):
         """Return the child connected at 'key'"""
-        raise NotImplementedError("Not supported")
+        if self.connection_type and not isinstance(key, self.connection_type):
+            raise TypeError("Key: '{}' is not a Connection type".format(key))
+        if key not in self:
+            raise NoModuleAttached("No module attached at: {}".format(key))
+        return self._children[key]
 
     def __delitem__(self, key):
         """Remove the connection to child connected at 'key'"""
-        raise NotImplementedError("Not supported")
+        # Check that 'key' is correct type
+        if not isinstance(key, (Module, self.connection_type)):
+            raise TypeError("Key: '{}' is not a supported connection type"
+                            .format(key))
+        # If we are asked to delete a module from our self
+        if isinstance(key, Module):
+            key = self.connection_point(key)
+        # Check if key is in children
+        if key not in self:
+            raise NoModuleAttached("No module attached at: {}".format(key))
+        # First get reference to child so that we can update
+        child = self._children[key]
+        # Delete child from our children
+        del self._children[key]
+        # Update child so that its position and orientation is updated
+        child.update()
 
     def __setitem__(self, key, module):
         """Attached the child 'module' at the point 'key'"""
@@ -127,7 +165,11 @@ class Module(object):
 
     def __repr__(self):
         """Create print friendly representation of this module"""
-        return "{}({})".format(self.__class__.__name__, self.position)
+        return ("{!s}(children: {:d}, len: {:d}, available: {:d})"
+                .format(self.__class__.__name__,
+                        len(self.children),
+                        len(self),
+                        len(self.available)))
 
     def update(self, parent=None, pos=None, direction=None):
         """Update configuration for the module.
@@ -139,7 +181,9 @@ class Module(object):
 
         If no arguments are given it indicates an update back to center
         position."""
-        if parent is not None and self.parent is not None and parent != self.parent:
+        if (parent is not None
+                and self.parent is not None
+                and parent != self.parent):
             raise ModuleAttached("This module already has a parent: {}"
                                  .format(self.parent))
         self.parent = parent
