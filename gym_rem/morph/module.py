@@ -171,6 +171,22 @@ class Module(object):
                         len(self),
                         len(self.available)))
 
+    def __str__(self):
+        """Create a string friendly representation of this module"""
+        res = ""
+        self_name = self.__class__.__name__
+        if self.children:
+            length = int(len(self.children) / 2.)
+            for i, child in enumerate(self.children):
+                if i != length:
+                    child_str = ' ' * len(self_name) + '  |-- ' + str(child)
+                else:
+                    child_str = self_name + ' -|-- ' + str(child)
+                res += child_str
+        else:
+            res = self_name + '\n'
+        return res
+
     def update(self, parent=None, pos=None, direction=None):
         """Update configuration for the module.
 

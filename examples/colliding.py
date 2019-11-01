@@ -28,9 +28,9 @@ side = up[Connection.z_minus]
 overlapper = Servo()
 side[Connection.z_minus] = overlapper
 # Reset environment passing our robot to be spawned
-_, overlap = env.reset(morphology=robot)
-# NOTE: We can inspect 'overlap' and find 'overlapper'
-# print(overlap)
+env.reset(morphology=robot)
+# NOTE: We can inspect the spawned robot through 'env.morphology'
+# print(env.morphology)
 # Regular old gym loop:
 while True:
     env.render()
