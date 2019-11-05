@@ -39,7 +39,7 @@ class Rect(Module):
     def rotate(self, theta):
         """Update rotation about connection axis"""
         self.theta = (self.theta + theta) % 4
-        axis = self.orientation.rotate(self.connection_axis)
+        axis = self.connection_axis
         self.orientation += Rot.from_axis(axis, -self.theta * (np.pi / 2.))
         self.update_children()
 
