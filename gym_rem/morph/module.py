@@ -26,7 +26,7 @@ class Module(object):
     # Connection ID to use when creating constraint
     connection_id = -1
     # Dictionary of children, defined here to make abstract methods more
-    # powerful
+    # powerful and to reduce code duplication
     _children = None
 
     @property
@@ -223,7 +223,7 @@ class Module(object):
                 orient = Rot.from_axis(np.flip(self.connection_axis), np.pi)
             # Update own orientation
             # self.orientation += parent.orientation + orient
-            self.orientation += orient
+            self.orientation = orient + self.orientation
 
     def update_children(self):
         """Update all child modules of self"""
