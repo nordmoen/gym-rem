@@ -47,6 +47,7 @@ class Servo(Module):
     def joint(self):
         return {'controlMode': pyb.POSITION_CONTROL,
                 'jointIndex': 0,
+                'force': 1.8,
                 'maxVelocity': 10.6}
 
     def __setitem__(self, key, module):

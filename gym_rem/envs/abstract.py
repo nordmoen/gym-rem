@@ -128,7 +128,7 @@ class ModularEnv(gym.Env):
                     parent = module.parent
                     del parent[module]
                 break
-        if len(self._modules) == 0:
+        if not self._modules:
             # This is a bad sign and it can be difficult to debug because the
             # error occurs much later than here
             raise RuntimeError("No modules were spawned from morphology!")
