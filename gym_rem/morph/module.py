@@ -88,6 +88,13 @@ class Module(object):
                 return queue
             queue = queue.parent
 
+    @property
+    def depth(self):
+        """Return the three depth from the root of this module"""
+        if self.parent:
+            return 1 + self.parent.depth
+        return 0
+
     def connection_point(self, item):
         """Get the connection point associated with 'item'"""
         if not isinstance(item, (Module, self.connection_type)):

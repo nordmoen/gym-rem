@@ -113,6 +113,20 @@ class TestServo(unittest.TestCase):
         self.assertIn('force', joint)
         self.assertIn('maxVelocity', joint)
 
+    def test_depth(self):
+        """Test abstract module 'depth' property"""
+        a = Servo()
+        b = Servo()
+        c = Servo()
+        d = Servo()
+        a += b
+        a += c
+        c += d
+        self.assertEqual(a.depth, 0)
+        self.assertEqual(b.depth, 1)
+        self.assertEqual(c.depth, 1)
+        self.assertEqual(d.depth, 2)
+
 
 if __name__ == '__main__':
     unittest.main()
