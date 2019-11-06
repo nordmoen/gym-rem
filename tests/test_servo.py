@@ -101,6 +101,18 @@ class TestServo(unittest.TestCase):
             1 in a
             {} in a
 
+    def test_joint(self):
+        """Ensure that joint contains required elements"""
+        a = Servo()
+        joint = a.joint
+        # These are required for all joints
+        self.assertIn('controlMode', joint)
+        self.assertIn('jointIndex', joint)
+        self.assertIn('target', joint)
+        # These are optional
+        self.assertIn('force', joint)
+        self.assertIn('maxVelocity', joint)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -68,8 +68,9 @@ class Module(object):
         The joint configuration is a leaky abstraction used for movable joints.
         Subclasses should return a dict with joint configuration according to
         pybyllet, supported items are 'controlMode' (required), 'jointIndex'
-        (required), 'positionGain' (optional), 'velocityGain' (optional) and
-        'maxVelocity' (optional).
+        (required), 'target' (required, one of 'targetPosition',
+        'targetVelocity' or 'force') 'positionGain' (optional), 'velocityGain'
+        (optional) and 'maxVelocity' (optional).
 
         Non-movable joints should return None.
         """

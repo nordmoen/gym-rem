@@ -48,7 +48,8 @@ class Servo(Module):
         return {'controlMode': pyb.POSITION_CONTROL,
                 'jointIndex': 0,
                 'force': 1.8,
-                'maxVelocity': 10.6}
+                'maxVelocity': 10.6,
+                'target': 'targetPosition'}
 
     def __setitem__(self, key, module):
         if not isinstance(key, Connection):

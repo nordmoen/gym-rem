@@ -140,13 +140,9 @@ class ModularEnv(gym.Env):
         for (m_id, cfg), act in zip(self._joints, action):
             # Create a local copy so we can delete from it
             l_cfg = cfg.copy()
-            idx = l_cfg['jointIndex']
-            del l_cfg['jointIndex']
-            mode = l_cfg['controlMode']
-            del l_cfg['controlMode']
-            pyb.setJointMotorControl2(m_id, idx, mode,
-                                      targetPosition=act,
-                                      **l_cfg)
+            l_cfg[l_cfg['target']] = act
+            del l_cfg['target']
+            pyb.setJointMotorControl2(m_id, **l_cfg)
         pyb.stepSimulation()
         return self.observation(), self.reward(), False, {}
 
