@@ -91,6 +91,11 @@ class Rect(Module):
         orient = self.orientation.as_quat()
         cuid = pyb.createCollisionShape(pyb.GEOM_BOX,
                                         halfExtents=self.size / 2.)
-        return pyb.createMultiBody(0.1, cuid,
-                                   basePosition=self.position,
-                                   baseOrientation=orient)
+        bid = pyb.createMultiBody(0.1, cuid,
+                                  basePosition=self.position,
+                                  baseOrientation=orient)
+        pyb.changeDynamics(bid, -1,
+                           frictionAnchor=1, contactStiffness=3000.,
+                           contactDamping=100., spinningFriction=0.3,
+                           lateralFriction=1.)
+        return bid
