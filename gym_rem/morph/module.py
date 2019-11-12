@@ -28,7 +28,6 @@ class Module(object):
     # Dictionary of children, defined here to make abstract methods more
     # powerful and to reduce code duplication
     _children = None
-    __children_cache = None
 
     @property
     def children(self):
@@ -38,13 +37,12 @@ class Module(object):
         This is different from '__iter__' in that this method only returns the
         children directly connected to this module and not their children.
         """
-        if self.__children_cache is None:
-            self.__children_cache = []
-            if self.connection_type:
-                for conn in self.connection_type:
-                    if conn in self._children:
-                        self.__children_cache.append(self._children[conn])
-        return self.__children_cache
+        res = []
+        if self.connection_type:
+            for conn in self.connection_type:
+                if conn in self._children:
+                    res.append(self._children[conn])
+        return res
 
     @property
     def available(self):
@@ -234,8 +232,6 @@ class Module(object):
             # Update own orientation
             # self.orientation += parent.orientation + orient
             self.orientation = orient + self.orientation
-            # Invalidate children cache
-            parent.__children_cache = None
 
     def update_children(self):
         """Update all child modules of self"""
