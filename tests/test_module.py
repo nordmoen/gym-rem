@@ -92,7 +92,7 @@ class TestMorpModule(unittest.TestCase):
         m = Module()
         self.assertTrue(hasattr(m, 'spawn'))
         with self.assertRaises(NotImplementedError):
-            m.spawn()
+            m.spawn(None)
 
 
 if __name__ == '__main__':

@@ -94,8 +94,8 @@ class Servo(Module):
             position = self.position + (direction * SIZE[1]) / 2.
             self._children[conn].update(self, position, direction)
 
-    def spawn(self):
+    def spawn(self, client):
         orient = self.orientation.as_quat()
-        return pyb.loadURDF('servo/Servo.urdf',
-                            basePosition=self.position,
-                            baseOrientation=orient)
+        return client.loadURDF('servo/Servo.urdf',
+                               basePosition=self.position,
+                               baseOrientation=orient)

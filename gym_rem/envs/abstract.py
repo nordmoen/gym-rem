@@ -8,6 +8,7 @@ Use this abstraction to implement new environments
 
 from collections import deque
 from gym_rem.morph import Module
+from pybullet_utils.bullet_client import BulletClient
 import copy
 import gym
 import logging
@@ -29,11 +30,11 @@ class ModularEnv(gym.Env):
         # Create logger for easy logging output
         self.log = logging.getLogger(self.__class__.__name__)
         # Create pybullet interfaces
-        self.client = pyb.connect(pyb.DIRECT)
+        self.client = BulletClient(connection_mode=pyb.DIRECT)
         self._last_render = time.time()
         # Setup information needed for simulation
         self.dt = 1. / 240.
-        pyb.setAdditionalSearchPath(ASSET_PATH)
+        self.client.setAdditionalSearchPath(ASSET_PATH)
         self._modules = {}
         self._joints = []
         # Stored for user interactions
@@ -43,25 +44,37 @@ class ModularEnv(gym.Env):
         self._real_time = False
         # Run setup
         self.log.info("Creating modular environment")
+        self.setup()
 
     def setup(self):
         """Helper method to initialize default environment"""
         # This is abstracted out from '__init__' because we need to do this
         # first time 'render' is called
         self.log.debug("Setting up simulation environment")
-        pyb.resetSimulation()
-        pyb.setGravity(0, 0, -9.81)
+        self.client.resetSimulation()
+        self.client.setGravity(0, 0, -9.81)
+        self.client.setDefaultContactERP(0.9)
+        # Physics engine parameters from:
+        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/scene_abstract.py#L74
+        self.client.setPhysicsEngineParameter(fixedTimeStep=0.0165,
+                                              numSolverIterations=5,
+                                              numSubSteps=4)
         # Extract time step for sleep during rendering
-        self.dt = pyb.getPhysicsEngineParameters()['fixedTimeStep']
+        self.dt = self.client.getPhysicsEngineParameters()['fixedTimeStep']
         # Load ground plane for robots to walk on
         self.log.debug("Loading ground plane")
-        self.plane_id = pyb.loadURDF('plane/plane.urdf')
+        self.plane_id = self.client.loadURDF('plane/plane.urdf')
         assert self.plane_id >= 0, "Could not load 'plane.urdf'"
+        # Change dynamics parameters from:
+        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/scene_stadium.py#L33
+        self.client.changeDynamics(self.plane_id, -1,
+                                   lateralFriction=0.8, restitution=0.5)
+        # Step world a few times for simulation to settle
         self.log.debug("Gym environment setup complete")
 
     def close(self):
         self.log.debug("Closing environment")
-        pyb.disconnect(self.client)
+        self.client.disconnect()
 
     def reset(self, morphology=None, max_size=None):
         # Reset the environment by running all setup code again
@@ -84,22 +97,22 @@ class ModularEnv(gym.Env):
             assert isinstance(module, Module), "{} does not inherit\
                     from Module".format(module)
             # Spawn module in world
-            m_id = module.spawn()
+            m_id = module.spawn(self.client)
             # Check if the module overlaps
-            aabb_min, aabb_max = pyb.getAABB(m_id)
+            aabb_min, aabb_max = self.client.getAABB(m_id)
             # Check overlapping modules
-            overlap = pyb.getOverlappingObjects(aabb_min, aabb_max)
+            overlap = self.client.getOverlappingObjects(aabb_min, aabb_max)
             # NOTE: An object always collides with it self
             overlapping_modules = any([u_id != m_id for u_id, _ in overlap])
             # Check against plane
-            aabb_min, aabb_max = pyb.getAABB(self.plane_id)
-            plane_overlap = pyb.getOverlappingObjects(aabb_min, aabb_max)
+            aabb_min, aabb_max = self.client.getAABB(self.plane_id)
+            plane_overlap = self.client.getOverlappingObjects(aabb_min, aabb_max)
             overlapping_plane = any([u_id != self.plane_id
                                      for u_id, _ in plane_overlap])
             # If overlap is detected de-spawn module and continue
             if overlapping_modules or overlapping_plane:
                 # Remove from simulation
-                pyb.removeBody(m_id)
+                self.client.removeBody(m_id)
                 # Remove from our private copy
                 parent = module.parent
                 del parent[module]
@@ -114,13 +127,15 @@ class ModularEnv(gym.Env):
             # Create constraint so that modules are connected
             if module.parent is not None:
                 parent_id = self._modules[module.parent]
-                pyb.createConstraint(parent_id, -1, m_id, module.connection_id,
-                                     pyb.JOINT_FIXED,
-                                     module.connection_axis,
-                                     module.connection[0],
-                                     module.connection[1],
-                                     module.parent.orientation.T.as_quat(),
-                                     module.orientation.T.as_quat())
+                cid = self.client.createConstraint(parent_id, -1, m_id,
+                                                   module.connection_id,
+                                                   pyb.JOINT_FIXED,
+                                                   module.connection_axis,
+                                                   module.connection[0],
+                                                   module.connection[1],
+                                                   module.parent.orientation.T.as_quat(),
+                                                   module.orientation.T.as_quat())
+                # pyb.changeConstraint(cid, maxForce=100.)
             # Check size constraints
             if max_size is not None and len(self._modules) >= max_size:
                 # If we are above max desired spawn size drain queue and remove
@@ -142,8 +157,8 @@ class ModularEnv(gym.Env):
             l_cfg = cfg.copy()
             l_cfg[l_cfg['target']] = act
             del l_cfg['target']
-            pyb.setJointMotorControl2(m_id, **l_cfg)
-        pyb.stepSimulation()
+            self.client.setJointMotorControl2(m_id, **l_cfg)
+        self.client.stepSimulation()
         return self.observation(), self.reward(), False, {}
 
     def observation(self):
@@ -155,7 +170,7 @@ class ModularEnv(gym.Env):
         velocities = []
         torques = []
         for m_id, _ in self._joints:
-            state = pyb.getJointState(m_id, 0)
+            state = self.client.getJointState(m_id, 0)
             positions.append(state[0])
             velocities.append(state[1])
             torques.append(state[3])
@@ -166,7 +181,7 @@ class ModularEnv(gym.Env):
         # Extract ID of root
         m_id = self._modules[self.morphology]
         # Get state of root link
-        pos, _ = pyb.getBasePositionAndOrientation(m_id)
+        pos, _ = self.client.getBasePositionAndOrientation(m_id)
         # Extract position
         position = np.array(pos)
         # We are only interested in distance in (X, Y)
@@ -175,15 +190,15 @@ class ModularEnv(gym.Env):
         return np.linalg.norm(position)
 
     def render(self, mode="human"):
-        info = pyb.getConnectionInfo(self.client)
+        info = self.client.getConnectionInfo()
         if info['connectionMethod'] != pyb.GUI and mode == 'human':
             self.log.debug("Enabling GUI rendering")
             self.close()
             self.log.debug("Starting GUI instance")
-            self.client = pyb.connect(pyb.GUI)
+            self.client = BulletClient(connection_mode=pyb.GUI)
             self.setup()
             self._last_render = time.time()
-            pyb.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
+            self.client.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
         elif info['connectionMethod'] == pyb.GUI:
             # Handle interaction with simulation
             self.handle_interaction()
@@ -203,16 +218,16 @@ class ModularEnv(gym.Env):
 
         This function is called in the 'render' call and is only called if the
         GUI is visible"""
-        keys = pyb.getKeyboardEvents()
+        keys = self.client.getKeyboardEvents()
         # If 'n' is pressed then we want to step the simulation
         next_key = ord('n')
         if next_key in keys and keys[next_key] & pyb.KEY_WAS_TRIGGERED:
-            pyb.stepSimulation()
+            self.client.stepSimulation()
         # If space is pressed we start/stop real-time simulation
         space = ord(' ')
         if space in keys and keys[space] & pyb.KEY_WAS_TRIGGERED:
             self._real_time = not self._real_time
-            pyb.setRealTimeSimulation(self._real_time)
+            self.client.setRealTimeSimulation(self._real_time)
         # if 'r' is pressed we restart simulation
         r = ord('r')
         if r in keys and keys[r] & pyb.KEY_WAS_TRIGGERED:

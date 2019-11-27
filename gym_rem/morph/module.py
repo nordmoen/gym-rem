@@ -237,6 +237,6 @@ class Module(object):
         """Update all child modules of self"""
         raise NotImplementedError("Not supported")
 
-    def spawn(self):
+    def spawn(self, client):
         """Spawn the module in the physics simulation"""
         raise NotImplementedError("Not supported")
