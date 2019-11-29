@@ -24,7 +24,7 @@ ASSET_PATH = os.path.join(os.path.dirname(__file__), "../../assets")
 class ModularEnv(gym.Env):
     """Abstract modular environment"""
 
-    metadata = {'render.modes': ['human'], 'video.frames_per_second': 240}
+    metadata = {'render.modes': ['human']}
 
     def __init__(self):
         # Create logger for easy logging output
@@ -39,7 +39,6 @@ class ModularEnv(gym.Env):
         self._joints = []
         # Stored for user interactions
         self.morphology = None
-        self._max_size = None
         # Used for user interaction:
         self._real_time = False
         # Run setup
@@ -86,9 +85,8 @@ class ModularEnv(gym.Env):
         if morphology is None:
             raise TypeError("Morphology cannot be 'None'!")
         if max_size is not None and max_size < 1:
-            raise ValueError("'max_size' must be larger than 1")
+            raise ValueError("'max_size' must be larger than 0")
         self.morphology = copy.deepcopy(morphology.root)
-        self._max_size = max_size
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
         queue = deque([self.morphology])
@@ -135,7 +133,7 @@ class ModularEnv(gym.Env):
                                                    module.connection[1],
                                                    module.parent.orientation.T.as_quat(),
                                                    module.orientation.T.as_quat())
-                # pyb.changeConstraint(cid, maxForce=100.)
+                # self.client.changeConstraint(cid, maxForce=10000.)
             # Check size constraints
             if max_size is not None and len(self._modules) >= max_size:
                 # If we are above max desired spawn size drain queue and remove
@@ -231,4 +229,4 @@ class ModularEnv(gym.Env):
         # if 'r' is pressed we restart simulation
         r = ord('r')
         if r in keys and keys[r] & pyb.KEY_WAS_TRIGGERED:
-            self.reset(self.morphology, self._max_size)
+            self.reset(self.morphology)
