@@ -89,13 +89,6 @@ class Rect(Module):
 
     def spawn(self, client):
         orient = self.orientation.as_quat()
-        cuid = client.createCollisionShape(pyb.GEOM_BOX,
-                                           halfExtents=self.size / 2.)
-        bid = client.createMultiBody(0.1, cuid,
-                                     basePosition=self.position,
-                                     baseOrientation=orient)
-        client.changeDynamics(bid, -1,
-                              frictionAnchor=1, contactStiffness=3000.,
-                              contactDamping=100., spinningFriction=0.3,
-                              lateralFriction=1.)
-        return bid
+        return client.loadURDF('rect.urdf',
+                               basePosition=self.position,
+                               baseOrientation=orient)

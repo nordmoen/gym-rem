@@ -18,15 +18,6 @@ robot = Rect()
 robot += Servo()
 robot += Servo()
 robot += Servo()
-robot += Servo()
-up = Servo()
-robot += up
-up += Rect()
-up += Rect()
-up += Rect()
-# robot += Rect()
-# robot += Rect()
-# robot += Rect()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
 while True:

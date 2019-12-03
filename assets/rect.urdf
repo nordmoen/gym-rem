@@ -1,0 +1,32 @@
+<?xml version="0.0" ?>
+<robot name="rect">
+  <link name="rect">
+    <contact>
+      <friction_anchor/>
+      <stiffness value="3000.0"/>
+      <damping value="100.0"/>
+      <spinning_friction value=".3"/>
+      <lateral_friction value="1"/>
+    </contact>
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="0.1" />
+      <inertia  ixx="0.0001" ixy="0.0"  ixz="0.0"  iyy="0.0001"  iyz="0.0"  izz="0.0001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <box size="0.061 0.061 0.061"/>
+      </geometry>
+      <material name="viridis_blue">
+	<color rgba="0.23 0.32 0.55 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <box size="0.061 0.061 0.061"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
