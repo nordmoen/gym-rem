@@ -38,6 +38,7 @@ class ModularEnv(gym.Env):
         self.multi_id = None
         self._joint_ids = []
         self._joints = []
+        # TODO: Define 'observation_space' and 'action_space'
         # Used for user interaction:
         self._real_time = False
         # Run setup
@@ -49,21 +50,18 @@ class ModularEnv(gym.Env):
         # first time 'render' is called
         self.client.resetSimulation()
         self.client.setGravity(0, 0, -9.81)
-        # self.client.setDefaultContactERP(0.9)
-        # Physics engine parameters from:
-        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/scene_abstract.py#L74
-        self.client.setPhysicsEngineParameter(fixedTimeStep=0.0165,
-                                              numSolverIterations=5,
-                                              numSubSteps=4)
         # Extract time step for sleep during rendering
         self.dt = self.client.getPhysicsEngineParameters()['fixedTimeStep']
+        # Following parameters from:
+        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L44
+        self.client.setPhysicsEngineParameter(numSolverIterations=10,
+                                              numSubSteps=1)
         # Load ground plane for robots to walk on
         self.plane_id = self.client.loadURDF('plane/plane.urdf')
         assert self.plane_id >= 0, "Could not load 'plane.urdf'"
         # Change dynamics parameters from:
-        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/scene_stadium.py#L33
-        self.client.changeDynamics(self.plane_id, -1,
-                                   lateralFriction=0.8, restitution=0.5)
+        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L45
+        self.client.changeDynamics(self.plane_id, -1, lateralFriction=0.9)
 
     def close(self):
         self.client.disconnect()
@@ -148,9 +146,10 @@ class ModularEnv(gym.Env):
                 self._joint_ids.append(jid)
         return self.observation()
 
-    def step(self, action):
+    def act(self, action):
+        """Helper function to apply actions to robot"""
         assert action.shape[0] == len(self._joint_ids), 'Action not equal to\
-                number of joints'
+            number of joints'
         for j_id, cfg, act in zip(self._joint_ids, self._joints, action):
             # Create a local copy so we can delete from it
             l_cfg = cfg.copy()
@@ -162,6 +161,9 @@ class ModularEnv(gym.Env):
             l_cfg[l_cfg['target']] = act
             del l_cfg['target']
             self.client.setJointMotorControl2(self.multi_id, j_id, **l_cfg)
+
+    def step(self, action):
+        self.act(action)
         self.client.stepSimulation()
         return self.observation(), self.reward(), False, {}
 
@@ -197,17 +199,18 @@ class ModularEnv(gym.Env):
     def render(self, mode="human"):
         info = self.client.getConnectionInfo()
         if info['connectionMethod'] != pyb.GUI and mode == 'human':
+            # Close current simulation and start new with GUI
             self.close()
             self.client = BulletClient(connection_mode=pyb.GUI)
             self.setup()
-            self._last_render = time.time()
+            # Configure viewport
+            self.client.configureDebugVisualizer(pyb.COV_ENABLE_GUI, 0)
             self.client.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
+            # Setup timing for correct sleeping when rendering
+            self._last_render = time.time()
         elif info['connectionMethod'] == pyb.GUI:
             # Handle interaction with simulation
             self.handle_interaction()
-            # Output camera images
-            self.client.getCameraImage(320, 200,
-                                       renderer=pyb.ER_BULLET_HARDWARE_OPENGL)
             # Calculate time to sleep
             now = time.time()
             diff = now - self._last_render

@@ -52,6 +52,9 @@ print("'env.observation()':\t\t{:.3f} milliseconds".format(obs_num * 1000.))
 rew_num = timeit.timeit("env.reward()", number=num, globals=glob)
 rew_num /= fnum
 print("'env.reward()':\t\t\t{:.3f} milliseconds".format(rew_num * 1000.))
+act_num = timeit.timeit("env.act(action)", number=num, globals=glob)
+act_num /= fnum
+print("'env.act(...)':\t\t\t{:.3f} milliseconds".format(act_num * 1000.))
 step_num = timeit.timeit("env.step(action)", number=num, globals=glob)
 step_num /= fnum
 print("'env.step(...)':\t\t{:.3f} milliseconds".format(step_num * 1000.))
