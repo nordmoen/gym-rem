@@ -116,13 +116,12 @@ class Link(object):
                        for v in client.getVisualShapeData(uid)
                        # Need to explicitly filter out visuals
                        if v[1] == lid]
-            assert visuals, "No visuals created for link: {:d}".format(uid)
             # No filtering is needed for collisions since the method accepts
             # link ID
             collisions = [Collision.from_shape(s)
                           for s in client.getCollisionShapeData(uid, lid)]
-            assert collisions, "No collisions created for link ({:d}: {:d})".format(
-                uid, lid)
+            assert collisions, "Could not create collision for Link\
+                (uID: {:d}, lID: {:d})".format(uid, lid)
             LINK_CACHE[name] = Link(inertia, visuals, collisions)
         return copy.deepcopy(LINK_CACHE[name])
 
@@ -292,15 +291,17 @@ class MultiBodyBuilder(object):
             collisionFramePositions=[c.position for c in link.collisions],
             collisionFrameOrientations=[c.orientation
                                         for c in link.collisions])
-        vis_index = client.createVisualShapeArray(
-            shapeTypes=[c.collision.type for c in link.visuals],
-            radii=[c.collision.radius for c in link.visuals],
-            halfExtents=[c.collision.extents for c in link.visuals],
-            lengths=[c.collision.length for c in link.visuals],
-            fileNames=[c.collision.mesh_filename for c in link.visuals],
-            meshScales=[c.collision.mesh_scale for c in link.visuals],
-            rgbaColors=[c.rgba for c in link.visuals],
-            visualFramePositions=[c.collision.position for c in link.visuals],
-            visualFrameOrientations=[c.collision.orientation
-                                     for c in link.visuals])
+        vis_index = -1
+        if link.visuals:
+            vis_index = client.createVisualShapeArray(
+                shapeTypes=[c.collision.type for c in link.visuals],
+                radii=[c.collision.radius for c in link.visuals],
+                halfExtents=[c.collision.extents for c in link.visuals],
+                lengths=[c.collision.length for c in link.visuals],
+                fileNames=[c.collision.mesh_filename for c in link.visuals],
+                meshScales=[c.collision.mesh_scale for c in link.visuals],
+                rgbaColors=[c.rgba for c in link.visuals],
+                visualFramePositions=[c.collision.position for c in link.visuals],
+                visualFrameOrientations=[c.collision.orientation
+                                         for c in link.visuals])
         return coll_index, vis_index
