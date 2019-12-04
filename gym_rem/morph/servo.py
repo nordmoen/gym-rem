@@ -48,6 +48,7 @@ class Servo(Module):
         return {'controlMode': pyb.POSITION_CONTROL,
                 'force': 1.8,
                 'maxVelocity': 10.6,
+                'limit': (-1.57, 1.57),
                 'target': 'targetPosition'}
 
     def __setitem__(self, key, module):

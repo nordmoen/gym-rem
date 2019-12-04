@@ -154,6 +154,11 @@ class ModularEnv(gym.Env):
         for j_id, cfg, act in zip(self._joint_ids, self._joints, action):
             # Create a local copy so we can delete from it
             l_cfg = cfg.copy()
+            # If joint should be limited we check that here
+            if 'limit' in l_cfg:
+                act = max(l_cfg['limit'][0], min(l_cfg['limit'][1], act))
+                del l_cfg['limit']
+            # Extract type of 'target' for joint
             l_cfg[l_cfg['target']] = act
             del l_cfg['target']
             self.client.setJointMotorControl2(self.multi_id, j_id, **l_cfg)
