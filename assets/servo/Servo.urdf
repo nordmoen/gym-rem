@@ -1,13 +1,13 @@
 <?xml version="0.0" ?>
 <robot name="Servo">
   <link name="Plate">
-    <contact>
-	  <friction_anchor/>
-	  <stiffness value="3000.0"/>
-	  <damping value="100.0"/>
-	  <spinning_friction value=".3"/>
-	  <lateral_friction value="1"/>
-    </contact>
+    <!--<contact>-->
+	  <!--<friction_anchor/>-->
+	  <!--<stiffness value="3000.0"/>-->
+	  <!--<damping value="100.0"/>-->
+	  <!--<spinning_friction value=".3"/>-->
+	  <!--<lateral_friction value="1"/>-->
+    <!--</contact>-->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
        <mass value="0.0825"/>
@@ -30,13 +30,13 @@
     </collision>
   </link>
   <link name="Body">
-    <contact>
-	  <friction_anchor/>
-	  <stiffness value="3000.0"/>
-	  <damping value="100.0"/>
-	  <spinning_friction value=".3"/>
-	  <lateral_friction value="1"/>
-    </contact>
+    <!--<contact>-->
+	  <!--<friction_anchor/>-->
+	  <!--<stiffness value="3000.0"/>-->
+	  <!--<damping value="100.0"/>-->
+	  <!--<spinning_friction value=".3"/>-->
+	  <!--<lateral_friction value="1"/>-->
+    <!--</contact>-->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
        <mass value="0.0825"/>
