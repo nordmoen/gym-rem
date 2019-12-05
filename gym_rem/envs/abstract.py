@@ -202,7 +202,10 @@ class ModularEnv(gym.Env):
             # Close current simulation and start new with GUI
             self.close()
             self.client = BulletClient(connection_mode=pyb.GUI)
-            self.setup()
+            if self.morphology is not None:
+                self.reset(self.morphology)
+            else:
+                self.setup()
             # Configure viewport
             self.client.configureDebugVisualizer(pyb.COV_ENABLE_GUI, 0)
             self.client.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
