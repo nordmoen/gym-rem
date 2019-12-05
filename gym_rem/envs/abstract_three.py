@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
 """
-Abstract modular environment.
-
-Use this abstraction to implement new environments
+Default 3D modular environment
 """
 
 from collections import deque
-from gym_rem.morph import Module
-from gym_rem.utils.body import MultiBodyBuilder, Joint
+from gym_rem.morph.three.abstract import Module3D
+from gym_rem.utils.body import MultiBodyBuilder
 from pybullet_utils.bullet_client import BulletClient
 import copy
 import gym
@@ -87,11 +85,11 @@ class ModularEnv(gym.Env):
         spawned_ids = {}
         # NOTE: We are using explicit queue handling here so that we can
         # ignore children of overlapping modules
-        queue = deque([self.morphology])
+        queue = deque([self.morphology.root])
         while len(queue) > 0:
             module = queue.popleft()
-            assert isinstance(module, Module), "{} does not inherit\
-                    from Module".format(module)
+            assert isinstance(module, Module3D), "{} does not inherit\
+                from 3D Module".format(type(module))
             # Spawn module in world
             m_id = module.spawn(self.client)
             # Check if the module overlaps

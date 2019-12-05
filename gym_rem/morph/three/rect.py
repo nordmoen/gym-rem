@@ -3,12 +3,11 @@
 """
 Non-movable Rectangle module
 """
-from .exception import ModuleAttached, ConnectionObstructed
-from .module import Module
+from gym_rem.morph import ModuleAttached, ConnectionObstructed
+from .abstract import Module3D
 from enum import Enum
 from gym_rem.utils import Rot
 import numpy as np
-import pybullet as pyb
 
 
 class Connection(Enum):
@@ -20,7 +19,7 @@ class Connection(Enum):
     z_plus = (0., 0., 1.)
 
 
-class Rect(Module):
+class Rect(Module3D):
     """Non-movable rectangle module"""
 
     def __init__(self, theta=0, size=(0.061, 0.061, 0.061)):

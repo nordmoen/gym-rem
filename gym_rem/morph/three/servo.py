@@ -3,10 +3,10 @@
 """
 Movable servo module
 """
-from .exception import ModuleAttached, ConnectionObstructed
-from .module import Module
-from gym_rem.utils import Rot
+from .abstract import Module3D
 from enum import Enum
+from gym_rem.morph import ModuleAttached, ConnectionObstructed
+from gym_rem.utils import Rot
 import numpy as np
 import pybullet as pyb
 
@@ -21,7 +21,7 @@ class Connection(Enum):
     x_plus = (1., 0., 0.)
 
 
-class Servo(Module):
+class Servo(Module3D):
     """Movable servo module"""
 
     def __init__(self, theta=0):

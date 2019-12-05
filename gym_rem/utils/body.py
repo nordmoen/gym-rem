@@ -3,7 +3,7 @@
 """
 Utility to fuse individual models into a 'MultiBody' in PyBullet
 """
-from gym_rem.morph import Servo
+from gym_rem.morph.three import Servo
 import copy
 import numpy as np
 import pybullet as pyb

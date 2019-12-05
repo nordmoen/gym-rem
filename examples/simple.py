@@ -3,13 +3,13 @@
 """
 Simple example to show of how to start and simulate a modular robot
 """
-from gym_rem.morph import Servo, Rect
+from gym_rem.morph.three import Servo, Rect
 import gym
 import numpy as np
 
 
 # Create environment
-env = gym.make("ModularLocomotion-v0")
+env = gym.make("ModularLocomotion3D-v0")
 # Call render before creating robot and 'reset' since it will reset the
 # environment to enable GUI
 env.render()
