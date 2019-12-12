@@ -8,8 +8,7 @@ from gym.envs.registration import register
 
 try:
     register(id="ModularLocomotion3D-v0",
-             entry_point="gym_rem.envs:Env3D",
-             max_episode_steps=240 * 20)
+             entry_point="gym_rem.envs:Env3D")
 except ImportError:
     pass
 

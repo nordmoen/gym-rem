@@ -36,7 +36,6 @@ class ModularEnv(gym.Env):
         self.multi_id = None
         self._joint_ids = []
         self._joints = []
-        # TODO: Define 'observation_space' and 'action_space'
         # Used for user interaction:
         self._real_time = False
         # Run setup
@@ -146,6 +145,10 @@ class ModularEnv(gym.Env):
             j_info = self.client.getJointInfo(self.multi_id, jid)
             if j_info[2] != pyb.JOINT_FIXED:
                 self._joint_ids.append(jid)
+        self.observation_space = gym.spaces.Box(-100., 100.,
+                                                shape=(3 * len(self._joints),))
+        lows = np.repeat(-1.57, len(self._joints))
+        self.action_space = gym.spaces.Box(lows, -1. * lows)
         return self.observation()
 
     def act(self, action):

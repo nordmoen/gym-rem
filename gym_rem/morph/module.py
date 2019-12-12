@@ -195,21 +195,13 @@ class Module(object):
                 # This means that 'conn_axis' and 'direction' point in the same
                 # direction, to convert we can find the vector perpendicular to
                 # 'conn_axis' and rotate by pi
-                flip1 = np.cross(self.connection_axis,
-                                 np.flip(self.connection_axis))
-                flip2 = np.cross(direction, np.flip(direction))
-                flip3 = np.cross(conn_axis, np.flip(conn_axis))
-                flip4 = conn_axis * direction
                 if abs(conn_axis[0]) > abs(conn_axis[2]):
-                    flip5 = np.array([-conn_axis[1], conn_axis[0], 0.])
+                    flip = np.array([-conn_axis[1], conn_axis[0], 0.])
                 else:
-                    flip5 = np.array([0., -conn_axis[2], conn_axis[1]])
-                orient = Rot.from_axis(flip5, np.pi)
+                    flip = np.array([0., -conn_axis[2], conn_axis[1]])
+                orient = Rot.from_axis(flip, np.pi)
             # Update own orientation
-            # self.orientation += parent.orientation + orient
-            # self.orientation = parent.orientation + orient + self.orientation
             self.orientation = orient + parent.orientation + self.orientation
-            # self.orientation = orient
 
     def update_children(self):
         """Update all child modules of self"""
