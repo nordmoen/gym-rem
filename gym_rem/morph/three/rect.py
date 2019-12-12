@@ -26,9 +26,9 @@ class Rect(Module3D):
         self.theta = theta % 4
         self.size = np.array(size)
         assert self.size.shape == (3,), "Size must be a 3 element vector!"
-        self.connection_axis = np.array([0., 0., 1.])
+        self.connection_axis = np.array([0., 0., -1.])
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * (np.pi / 2.))
+                                         self.theta * (np.pi / 2.))
         # NOTE: The fudge factor is to avoid colliding with the plane once
         # spawned
         self.position = np.array([0., 0., self.size[2] / 2. + 0.002])
@@ -39,7 +39,7 @@ class Rect(Module3D):
         """Update rotation about connection axis"""
         self.theta = (self.theta + theta) % 4
         axis = self.connection_axis
-        self.orientation += Rot.from_axis(axis, -self.theta * (np.pi / 2.))
+        self.orientation += Rot.from_axis(axis, self.theta * (np.pi / 2.))
         self.update_children()
 
     def __setitem__(self, key, module):
@@ -61,7 +61,7 @@ class Rect(Module3D):
         # Update own orientation first in case we have been previously
         # connected
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * (np.pi / 2.))
+                                         self.theta * (np.pi / 2.))
         # Update position in case parent is None
         self.position = np.array([0., 0., self.size[2] / 2. + 0.002])
         # Reset connection in case parent is None
@@ -72,8 +72,8 @@ class Rect(Module3D):
         if self.parent is not None:
             # Update center position for self
             # NOTE: We add a little fudge factor to avoid overlap
-            self.position = pos + (direction * self.size * 1.01) / 2.
-            # Calculate connection points for joint
+            self.position = pos - (direction * self.size * 1.01) / 2.
+            # Calculate connection points for module
             conn = np.array([0., 0., -self.size[2] / 2.])
             parent_conn = parent.orientation.T.rotate(pos - parent.position)
             self.connection = (parent_conn, conn)
@@ -82,6 +82,7 @@ class Rect(Module3D):
 
     def update_children(self):
         for conn in self._children:
+            # NOTE: Should be similar to '__setitem__'!
             direction = self.orientation.rotate(np.array(conn.value))
             position = self.position + (direction * self.size) / 2.
             self._children[conn].update(self, position, direction)

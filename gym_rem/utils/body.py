@@ -194,7 +194,8 @@ class MultiBodyBuilder(object):
                 joints[0].parent = bid_mapping[module.parent]
                 joints[0].child = len(self)
                 links[0].position = module.connection[0] * 2.
-                links[0].orientation = (module.parent.orientation.T + module.orientation).as_quat()
+                links[0].orientation = (module.parent.orientation.T
+                                        + module.orientation).as_quat()
             else:
                 # Set root element position equal to module position
                 links[0].position = module.position

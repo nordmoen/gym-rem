@@ -10,14 +10,19 @@ import numpy as np
 
 # Create environment
 env = gym.make("ModularLocomotion3D-v0")
+# Create modular robot to work with
+robot = Rect(2)
+back = Rect()
+robot += back
+back += Servo()
+side = Rect(2)
+back += side
+side += Rect()
+side += Servo()
+side += Servo()
 # Call render before creating robot and 'reset' since it will reset the
 # environment to enable GUI
 env.render()
-# Create modular robot to work with
-robot = Servo(0)
-robot += Servo(2)
-robot += Rect(1)
-robot += Rect()
 # Reset environment passing our robot to be spawned
 env.reset(morphology=robot)
 # Regular old gym loop:

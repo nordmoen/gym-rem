@@ -4,20 +4,29 @@
 Example code to create random morphologies
 """
 
-from gym_rem.envs import ModularEnv
-from gym_rem.morph import Servo, Rect
 import argparse
+import gym
+import gym_rem
 import numpy as np
 import pickle
 import tqdm
 
 
-def _create_random(max_size):
+def _create_random(max_size, type='3d'):
     """Helper method to create random morphology"""
+    if type == '3d':
+        from gym_rem.morph.three import Servo, Rect
+        initial = Rect
+        choices = [Rect, Servo]
+    else:
+        from gym_rem.morph.two import Servo, Rect
+        initial = Rect
+        choices = [Rect, Servo]
     # We always start with a static root
-    root = Rect()
+    root = initial()
     # Select a random number of modules to attach
-    size = np.random.randint(0, max_size)
+    size = np.random.randint(1, max_size)
+    # size = max_size
     for _ in range(size):
         # Create a list of all available sites to place a module
         sites = []
@@ -27,7 +36,7 @@ def _create_random(max_size):
         idx = np.random.randint(0, len(sites))
         conn, mod = sites[idx]
         # Select module randomly
-        module = np.random.choice([Rect, Servo])
+        module = np.random.choice(choices)
         # Update morphology with new random module
         mod[conn] = module()
     return root
@@ -47,11 +56,16 @@ parser.add_argument('--quiet', '-q', action='store_true',
                     help="Do not show progress")
 parser.add_argument('--seed', type=int, default=1234,
                     help="Random seed")
+parser.add_argument('--env', choices=['2d', '3d'], default='3d',
+                    help="Use 2D or 3D environment")
 args = parser.parse_args()
 # Set seed for reproducibility
 np.random.seed(args.seed)
 # Create default environment
-env = ModularEnv()
+if args.env == '3d':
+    env = gym.make('ModularLocomotion3D-v0')
+else:
+    env = gym.make('ModularLocomotion2D-v0')
 if args.gui:
     env.render()
 # Get number of steps per simulated seconds
@@ -62,8 +76,8 @@ prog = tqdm.trange(args.number, desc="Testing morphology", leave=False,
 # For each morphology
 for i in prog:
     # Create random morphology and reset environment
-    morph = _create_random(args.size)
-    obs, _ = env.reset(morph)
+    morph = _create_random(args.size, args.env)
+    obs = env.reset(morphology=morph)
     # Simulate the morphology to ensure that it doesn't do anything weired
     rew = 0.0
     for _ in range(int(args.seconds / dt)):

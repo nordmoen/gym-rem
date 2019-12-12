@@ -26,9 +26,9 @@ class Servo(Module3D):
 
     def __init__(self, theta=0):
         self.theta = theta % 4
-        self.connection_axis = np.array([1., 0., 0.])
+        self.connection_axis = np.array([-1., 0., 0.])
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * (np.pi / 2.0))
+                                         self.theta * (np.pi / 2.0))
         # NOTE: The fudge factor is to avoid colliding with the plane once
         # spawned
         self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
@@ -40,7 +40,7 @@ class Servo(Module3D):
         """Update rotation about connection axis"""
         self.theta = (self.theta + theta) % 4
         axis = self.connection_axis
-        self.orientation += Rot.from_axis(axis, -self.theta * (np.pi / 2.))
+        self.orientation += Rot.from_axis(axis, self.theta * (np.pi / 2.))
         self.update_children()
 
     @property
@@ -70,7 +70,7 @@ class Servo(Module3D):
         # Update own orientation first in case we have been previously
         # connected
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * (np.pi / 2.))
+                                         self.theta * (np.pi / 2.))
         # Update position in case parent is None
         self.position = np.array([0., 0., SIZE[1] / 2.0 + 0.002])
         # Reset connection in case parent is None
@@ -80,7 +80,7 @@ class Servo(Module3D):
         # If parent is not None we need to update position and connection point
         if self.parent is not None:
             # Update center position for self
-            self.position = pos + (direction * SIZE[0]) / 2.
+            self.position = pos - (direction * SIZE[0]) / 2.
             # Calculate connection points for joint
             conn = np.array([-SIZE[1] / 2., 0., 0.])
             parent_conn = parent.orientation.T.rotate(pos - parent.position)
@@ -90,6 +90,7 @@ class Servo(Module3D):
 
     def update_children(self):
         for conn in self._children:
+            # NOTE: Should be similar to '__setitem__'!
             direction = self.orientation.rotate(np.array(conn.value))
             position = self.position + (direction * SIZE[1]) / 2.
             self._children[conn].update(self, position, direction)

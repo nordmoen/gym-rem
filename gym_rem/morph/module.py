@@ -20,11 +20,9 @@ class Module(object):
     # Orientation of module
     orientation = Rot.identity()
     # Axis to rotate module around when attaching
-    connection_axis = np.array([1., 0., 0.])
+    connection_axis = np.array([0., 0., 0.])
     # Subclasses should point their respective connection classes here
     connection_type = None
-    # Connection ID to use when creating constraint
-    connection_id = -1
     # Dictionary of children, defined here to make abstract methods more
     # powerful and to reduce code duplication
     _children = None
@@ -61,22 +59,6 @@ class Module(object):
         return res
 
     @property
-    def joint(self):
-        """
-        Get the joint configuration as a dict.
-
-        The joint configuration is a leaky abstraction used for movable joints.
-        Subclasses should return a dict with joint configuration according to
-        pybyllet, supported items are 'controlMode' (required), 'jointIndex'
-        (required), 'target' (required, one of 'targetPosition',
-        'targetVelocity' or 'force') 'positionGain' (optional), 'velocityGain'
-        (optional) and 'maxVelocity' (optional).
-
-        Non-movable joints should return None.
-        """
-        return None
-
-    @property
     def root(self):
         """Extract the root module of this module.
 
@@ -108,12 +90,11 @@ class Module(object):
 
     def __iter__(self):
         """Iterate all modules connected to this module"""
-        yield self
         queue = deque([self])
         while queue:
-            for child in queue.popleft().children:
-                yield child
-                queue.append(child)
+            node = queue.popleft()
+            yield node
+            queue.extend(node.children)
 
     def __contains__(self, item):
         """Check if the module 'item' is connected to this module"""
@@ -173,27 +154,11 @@ class Module(object):
 
     def __repr__(self):
         """Create print friendly representation of this module"""
-        return ("{!s}(children: {:d}, len: {:d}, available: {:d})"
+        return ("{!s}(children: {:d}, depth: {:d}, available: {:d})"
                 .format(self.__class__.__name__,
                         len(self.children),
-                        len(self),
+                        self.depth,
                         len(self.available)))
-
-    def __str__(self):
-        """Create a string friendly representation of this module"""
-        res = ""
-        self_name = self.__class__.__name__
-        if self.children:
-            length = int(len(self.children) / 2.)
-            for i, child in enumerate(self.children):
-                if i != length:
-                    child_str = ' ' * len(self_name) + '  |-- ' + str(child)
-                else:
-                    child_str = self_name + ' -|-- ' + str(child)
-                res += child_str
-        else:
-            res = self_name + '\n'
-        return res
 
     def update(self, parent=None, pos=None, direction=None):
         """Update configuration for the module.
@@ -216,8 +181,10 @@ class Module(object):
         if parent is not None:
             # The below equation rotates the 'connection_axis' parameter to
             # look in the same direction as 'direction'
-            v = np.cross(self.connection_axis, direction)
-            c = self.connection_axis.dot(direction)
+            direction *= -1.
+            conn_axis = parent.orientation.rotate(self.connection_axis)
+            v = np.cross(conn_axis, direction)
+            c = conn_axis.dot(direction)
             skew = np.array([[0., -v[2], v[1]],
                              [v[2], 0., -v[0]],
                              [-v[1], v[0], 0.]])
@@ -225,18 +192,25 @@ class Module(object):
                 orient = Rot(np.identity(3) + skew
                              + skew.dot(skew) * (1. / (1. + c)))
             else:
-                # This means that 'connection_axis' and 'direction' point in
-                # the same direction, to convert we can simply flip one axis
-                # and rotate by pi
-                orient = Rot.from_axis(np.flip(self.connection_axis), np.pi)
+                # This means that 'conn_axis' and 'direction' point in the same
+                # direction, to convert we can find the vector perpendicular to
+                # 'conn_axis' and rotate by pi
+                flip1 = np.cross(self.connection_axis,
+                                 np.flip(self.connection_axis))
+                flip2 = np.cross(direction, np.flip(direction))
+                flip3 = np.cross(conn_axis, np.flip(conn_axis))
+                flip4 = conn_axis * direction
+                if abs(conn_axis[0]) > abs(conn_axis[2]):
+                    flip5 = np.array([-conn_axis[1], conn_axis[0], 0.])
+                else:
+                    flip5 = np.array([0., -conn_axis[2], conn_axis[1]])
+                orient = Rot.from_axis(flip5, np.pi)
             # Update own orientation
             # self.orientation += parent.orientation + orient
-            self.orientation = orient + self.orientation
+            # self.orientation = parent.orientation + orient + self.orientation
+            self.orientation = orient + parent.orientation + self.orientation
+            # self.orientation = orient
 
     def update_children(self):
         """Update all child modules of self"""
-        raise NotImplementedError("Not supported")
-
-    def spawn(self, client):
-        """Spawn the module in the physics simulation"""
         raise NotImplementedError("Not supported")

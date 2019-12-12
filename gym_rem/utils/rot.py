@@ -18,7 +18,7 @@ class Rot(object):
 
     def rotate(self, vector):
         """Rotate the vector by the rotation represented by this object"""
-        return self._mat.dot(vector)
+        return self._mat @ vector
 
     @property
     def T(self):
@@ -38,8 +38,16 @@ class Rot(object):
         return self
 
     def __repr__(self):
-        roll, pitch, yaw = self.as_euler()
-        return "Rot({:.2f}, {:.2f}, {:.2f})".format(roll, pitch, yaw)
+        axis, angle = self.as_axis()
+        return "Rot([{:.2f}, {:.2f}, {:.2f}], {:.2f})".format(*axis, angle)
+
+    def __eq__(self, other):
+        assert isinstance(other, Rot)
+        ident = self._mat.T @ other._mat
+        return np.allclose(ident, np.identity(3))
+
+    def __ne__(self, other):
+        return not self == other
 
     def as_euler(self):
         """Return the rotation represented as Euler angles"""

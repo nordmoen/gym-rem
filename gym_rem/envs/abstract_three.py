@@ -97,12 +97,16 @@ class ModularEnv(gym.Env):
             # Check overlapping modules
             overlap = self.client.getOverlappingObjects(aabb_min, aabb_max)
             # NOTE: An object always collides with it self
-            overlapping_modules = any([u_id != m_id for u_id, _ in overlap])
+            overlapping_modules = False
+            if overlap:
+                overlapping_modules = any([u_id != m_id for u_id, _ in overlap])
             # Check against plane
             aabb_min, aabb_max = self.client.getAABB(self.plane_id)
             plane_overlap = self.client.getOverlappingObjects(aabb_min, aabb_max)
-            overlapping_plane = any([u_id != self.plane_id
-                                     for u_id, _ in plane_overlap])
+            overlapping_plane = False
+            if plane_overlap:
+                overlapping_plane = any([u_id != self.plane_id
+                                         for u_id, _ in plane_overlap])
             # If overlap is detected de-spawn module and continue
             if overlapping_modules or overlapping_plane:
                 # Remove from simulation
