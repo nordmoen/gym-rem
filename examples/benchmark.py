@@ -4,9 +4,9 @@
 Helper file to benchmark PyBullet and modular robotics
 """
 
-from gym_rem.envs import ModularEnv
-from gym_rem.morph.servo import Servo, Connection
 import argparse
+import gym
+import gym_rem
 import numpy as np
 import timeit
 
@@ -17,9 +17,16 @@ parser.add_argument('--number', '-n', type=int, default=1000,
                     help="Number of iterations per method")
 parser.add_argument('--length', '-l', type=int, default=50,
                     help="Number of modules to create")
+parser.add_argument('--env', choices=['2d', '3d'], default='3d',
+                    help="Utilize 2D or 3D environment")
 args = parser.parse_args()
 # Create environment
-env = ModularEnv()
+if args.env == '2d':
+    env = gym.make('ModularLocomotion2D-v0')
+    from gym_rem.morph.two.servo import Servo, Connection
+elif args.env == '3d':
+    env = gym.make('ModularLocomotion3D-v0')
+    from gym_rem.morph.three.servo import Servo, Connection
 # Create robot
 root = Servo()
 current = root
@@ -34,9 +41,14 @@ dt = env.dt
 # Run timings
 num = args.number
 fnum = float(num)
-create_num = timeit.timeit("_ = ModularEnv()",
-                           setup="from gym_rem.envs import ModularEnv",
-                           number=20)
+if args.env == '2d':
+    create_num = timeit.timeit("_ = gym.make('ModularLocomotion2D-v0')",
+                               setup="import gym;import gym_rem",
+                               number=20)
+elif args.env == '3d':
+    create_num = timeit.timeit("_ = gym.make('ModularLocomotion3D-v0')",
+                               setup="import gym;import gym_rem",
+                               number=20)
 create_num /= 20.0
 print("'ModularEnv()':\t\t\t{:.3f} milliseconds".format(create_num * 1000.))
 copy_num = timeit.timeit("copy.deepcopy(morph)", setup="import copy",
