@@ -27,7 +27,7 @@ PLATE_FD = Box2D.b2FixtureDef(
     shape=Box2D.b2PolygonShape(box=(4, 20)),
     density=0.000103)
 # Enable debug if debug drawing is desired
-DEBUG = True
+DEBUG = False
 
 
 class ModularEnv2D(gym.Env):
@@ -144,7 +144,7 @@ class ModularEnv2D(gym.Env):
         position_correction = np.array([0.0, GROUND_HEIGHT + 0.1])
         axis, angle = module.orientation.as_axis()
         # angle = module.orientation.as_euler()[0]
-        angle = axis[1] * angle * -1.
+        angle = ((axis[1] * angle) % (2. * np.pi)) * -1.
         if isinstance(module, Rect):
             # Spawn rectangle module
             body = self.world.CreateDynamicBody(
