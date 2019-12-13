@@ -9,6 +9,7 @@ from gym_rem.morph.two import Module2D, Rect, Servo
 import Box2D
 import copy
 import gym
+import math
 import numpy as np
 
 # Static constants for environment
@@ -17,7 +18,7 @@ VIEWPORT_H = 576
 GROUND_HEIGHT = 10
 # Fixture definition for ground
 GROUND_FD = Box2D.b2FixtureDef(
-    shape=Box2D.b2PolygonShape(box=(VIEWPORT_W, GROUND_HEIGHT)))
+    shape=Box2D.b2PolygonShape(box=(VIEWPORT_W * 100, GROUND_HEIGHT)))
 # Fixture definitions for bodies
 CUBE_FD = Box2D.b2FixtureDef(
     shape=Box2D.b2PolygonShape(box=(20, 20)),
@@ -25,17 +26,22 @@ CUBE_FD = Box2D.b2FixtureDef(
 PLATE_FD = Box2D.b2FixtureDef(
     shape=Box2D.b2PolygonShape(box=(4, 20)),
     density=0.000103)
+# Enable debug if debug drawing is desired
+DEBUG = True
 
 
 class ModularEnv2D(gym.Env):
     """Default 2D modular environment"""
 
-    metadata = {'render.modes': ['human']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, dt=1./60.):
         # Setup world and potentially viewport
         self.world = None
         self.viewer = None
+        # Viewer parameters
+        self._scroll = 1.
+        self._view = np.array([VIEWPORT_W/2, 0.])
         # Setup morphology
         self.morphology = None
         self._joints = {}  # Mapping from module.joint to Box2D joint
@@ -51,27 +57,76 @@ class ModularEnv2D(gym.Env):
             self.viewer.close()
             self.viewer = None
 
+    def _on_scroll(self, x, y, scroll_x, scroll_y):
+        self._scroll += 0.1 * scroll_y
+        self._scroll = min(3.5, max(self._scroll, 0.2))
+
+    def _on_drag(self, x, y, dx, dy, buttons, modifiers):
+        if buttons:
+            self._view += np.array([dx, 0.])
+
+    def _on_key(self, symb, modif):
+        from pyglet.window import key
+        if symb == key._0 and modif & key.MOD_ACCEL:
+            self._scroll = 1.
+            # Reset with body in center
+            x_pos = VIEWPORT_W / 2. + self._bodies[0].position.x
+            self._view = np.array([x_pos, 0.])
+        elif symb == key.S:
+            self.world.Step(self.dt, 30*6, 30*2)
+        elif symb == key.R:
+            self.reset(self.morphology)
+        elif symb == key.SPACE:
+            for _ in range(int(1. / self.dt)):
+                self.world.Step(self.dt, 30*6, 30*2)
+
     def render(self, mode='human'):
+        from gym.envs.classic_control import rendering
         if self.viewer is None:
-            from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(VIEWPORT_W, VIEWPORT_H)
             self.viewer.window.set_caption("Robotics, Evolution and Modularity - OpenAI Gym")
+            self.viewer.window.on_mouse_scroll = self._on_scroll
+            self.viewer.window.on_mouse_drag = self._on_drag
+            self.viewer.window.on_key_press = self._on_key
         # First we render ground
-        ground_path = [v for v in self.ground.fixtures[0].shape.vertices]
+        ground_path = [np.array(v) * self._scroll + self._view
+                       for v in self.ground.fixtures[0].shape.vertices]
         self.viewer.draw_polygon(ground_path, color=(0.0, 0.26, 0.15))
         # Draw spawned bodies
         for body in self._bodies:
             for fixture in body.fixtures:
                 trans = fixture.body.transform
-                path = [trans * v for v in fixture.shape.vertices]
+                path = [trans * v * self._scroll + self._view
+                        for v in fixture.shape.vertices]
                 self.viewer.draw_polygon(path, color=body.color1)
                 path.append(path[0])
-                self.viewer.draw_polyline(path, color=body.color2, linewidth=2)
+                self.viewer.draw_polyline(path, color=body.color2,
+                                          linewidth=2. * self._scroll)
                 # Add a yellow line at the point where this connects to other
                 # modules for easier visualization of connections
                 if hasattr(body, 'draw_connection') and body.draw_connection:
                     self.viewer.draw_polyline(path[0:2], color=(1.0, 0.91, 0.15),
-                                              linewidth=2)
+                                              linewidth=2 * self._scroll)
+                if DEBUG:
+                    self.viewer.draw_polyline(path[0:2], color=(1.0, 0.0, 0.0),
+                                              linewidth=2 * self._scroll)
+        if DEBUG:
+            # Only draw the following in debug mode
+            for joint in self.world.joints:
+                # if type(joint) is Box2D.b2WeldJoint:
+                filled = type(joint) is Box2D.b2WeldJoint
+                pos1 = np.array(joint.anchorA) * self._scroll + self._view
+                t1 = rendering.Transform(translation=pos1)
+                self.viewer.draw_circle(radius=2 * self._scroll,
+                                        color=(0, 1, 0),
+                                        filled=filled).add_attr(t1)
+                self.viewer.draw_line(pos1, np.array(joint.bodyA.position) * self._scroll + self._view)
+                pos2 = np.array(joint.anchorB) * self._scroll + self._view
+                t2 = rendering.Transform(translation=pos1)
+                self.viewer.draw_circle(radius=2 * self._scroll,
+                                        color=(0, 0, 1),
+                                        filled=filled).add_attr(t2)
+                self.viewer.draw_line(pos2, np.array(joint.bodyB.position) * self._scroll + self._view)
         # Return rendering result
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
@@ -79,15 +134,17 @@ class ModularEnv2D(gym.Env):
         """Helper method to initialize default environment"""
         self.world = Box2D.b2World()
         self.ground = self.world.CreateStaticBody(
-            position=(0, 0), fixtures=GROUND_FD)
+            position=(VIEWPORT_W / 2., 0.0),
+            fixtures=GROUND_FD)
 
     def _spawn(self, module):
         """Helper method to spawn 2D module inside Box2D"""
         bodies = []
         joints = []
-        position_correction = np.array([VIEWPORT_W / 2., GROUND_HEIGHT + 0.1])
+        position_correction = np.array([0.0, GROUND_HEIGHT + 0.1])
         axis, angle = module.orientation.as_axis()
-        angle = axis[1] * angle
+        # angle = module.orientation.as_euler()[0]
+        angle = axis[1] * angle * -1.
         if isinstance(module, Rect):
             # Spawn rectangle module
             body = self.world.CreateDynamicBody(
@@ -106,12 +163,11 @@ class ModularEnv2D(gym.Env):
                 fixtures=CUBE_FD)
             body.color1 = (0.13, 0.57, 0.55)
             body.color2 = (0, 0, 0)
-            body.draw_connection = True
             bodies.append(body)
             # Spawn plate
             plate_corr = module.orientation.rotate(np.array([-29., 0., 0]))
             plate = self.world.CreateDynamicBody(
-                position=module.position[::2] + position_correction - plate_corr[::2],
+                position=module.position[::2] + position_correction + plate_corr[::2],
                 angle=angle,
                 fixtures=PLATE_FD)
             plate.color1 = (0.99, 0.90, 0.15)
@@ -122,7 +178,7 @@ class ModularEnv2D(gym.Env):
                 bodyA=body,
                 bodyB=plate,
                 localAnchorA=(0, 0),
-                localAnchorB=(29, 0),
+                localAnchorB=-plate_corr[::2] if math.isclose(angle, 0.0) else (29., 0.),
                 enableMotor=True,
                 enableLimit=True,
                 maxMotorTorque=1000.8,
@@ -186,11 +242,19 @@ class ModularEnv2D(gym.Env):
             if module.parent:
                 parent_body = self._module_map[module.parent][0]
                 child_body = self._module_map[module][-1]
-                self.world.CreateWeldJoint(
+                if math.isclose(parent_body.angle, 0.0):
+                    parent_orient = module.parent.orientation.rotate(module.connection[0])
+                else:
+                    parent_orient = module.connection[0]
+                if math.isclose(child_body.angle, 0.0):
+                    child_orient = module.orientation.rotate(module.connection[1])
+                else:
+                    child_orient = module.connection[1]
+                joint = self.world.CreateWeldJoint(
                     bodyA=parent_body,
                     bodyB=child_body,
-                    localAnchorA=module.connection[0][::2],
-                    localAnchorB=module.connection[1][::2])
+                    localAnchorA=parent_orient[::2],
+                    localAnchorB=child_orient[::2])
             # Remember to count number of modules spawned
             spawned += 1
             # Since it spawned successfully we add its children
@@ -234,7 +298,9 @@ class ModularEnv2D(gym.Env):
         # We are only interested in distance along the X-axis
         position[1] = 0.0
         # Return the distance from the initial position
-        return np.linalg.norm(position)
+        # NOTE: We scale the reward by 10 to get values that feel a bit more
+        # correct for the 2D case since positions are in pixels
+        return np.linalg.norm(position) / 10.
 
     def act(self, action):
         """Helper method to apply desired action to joints"""

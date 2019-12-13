@@ -21,9 +21,9 @@ class Rect(Module2D):
     """2D rectangle"""
     def __init__(self, theta=0):
         self.theta = theta % 2
-        self.connection_axis = np.array([0., 0., 1.])
+        self.connection_axis = np.array([0., 0., -1.])
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * np.pi)
+                                         self.theta * np.pi)
         self.position = np.array([0., 0., 20.])
         self.connection_type = Connection
         self._children = {}
@@ -32,7 +32,7 @@ class Rect(Module2D):
         """Update internal rotation about connection axis"""
         self.theta = (self.theta + theta) % 2
         self.orientation += Rot.from_axis(self.connection_axis,
-                                          -self.theta * np.pi)
+                                          self.theta * np.pi)
         self.update_children()
 
     def __setitem__(self, key, module):
@@ -43,9 +43,9 @@ class Rect(Module2D):
         # Add child to children
         self._children[key] = module
         # Calculate direction of child connection
-        direction = self.orientation.T.rotate(np.array(key.value))
+        direction = self.orientation.rotate(np.array(key.value))
         # Calculate position on self of child
-        position = self.position + (direction * 20.)
+        position = self.position + (direction * 20.2)
         # Update child
         module.update(self, position, direction)
 
@@ -53,7 +53,7 @@ class Rect(Module2D):
         # Update own orientation first in case we have been previously
         # connected
         self.orientation = Rot.from_axis(self.connection_axis,
-                                         -self.theta * np.pi)
+                                         self.theta * np.pi)
         # Update position in case parent is None
         self.position = np.array([0., 0., 20.])
         # Reset connection in case parent is None
@@ -64,16 +64,17 @@ class Rect(Module2D):
         if self.parent is not None:
             # Update center position for self
             # NOTE: We add a little fudge factor to avoid overlap
-            self.position = pos + (direction * 20.1)
+            self.position = pos - (direction * 20.2)
             # Calculate connection points for joint
-            conn = np.array([0., 0., -20.1])
+            conn = np.array([0., 0., -20.2])
             parent_conn = parent.orientation.T.rotate(pos - parent.position)
+            # parent_conn = pos - parent.position
             self.connection = (parent_conn, conn)
         # Update potential children
         self.update_children()
 
     def update_children(self):
         for conn in self._children:
-            direction = self.orientation.T.rotate(np.array(conn.value))
-            position = self.position + (direction * 20.1)
+            direction = self.orientation.rotate(np.array(conn.value))
+            position = self.position + (direction * 20.2)
             self._children[conn].update(self, position, direction)

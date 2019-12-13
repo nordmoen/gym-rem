@@ -58,6 +58,8 @@ parser.add_argument('--seed', type=int, default=1234,
                     help="Random seed")
 parser.add_argument('--env', choices=['2d', '3d'], default='3d',
                     help="Use 2D or 3D environment")
+parser.add_argument('--distance', '-d', type=float, default=0.1,
+                    help="Maximum distance before something is reported")
 args = parser.parse_args()
 # Set seed for reproducibility
 np.random.seed(args.seed)
@@ -85,7 +87,7 @@ for i in prog:
         if args.gui:
             env.render()
     # When done check latest reward to see distance moved
-    if rew > 0.1:
+    if rew > args.distance:
         prog.write("Morphology {:d} moved: {:.2f}".format(i, rew))
         with open('bad_morph_{:d}.pickle'.format(i), 'wb') as fil:
             pickle.dump(morph, fil)
