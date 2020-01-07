@@ -89,13 +89,30 @@ class Inertial(object):
     @staticmethod
     def from_dynamics(dynamics):
         """Create Inertial from a PyBullet dynamics info object"""
-        return Inertial(dynamics[0], dynamics[1], dynamics[3], dynamics[4])
+        return Inertial(dynamics[0], dynamics[2], dynamics[3], dynamics[4])
+
+
+class Dynamics(object):
+    """Dynamics abstract object"""
+    def __init__(self, lateral, spinning, rolling, damping, stiffness, restitution):
+        self.lateral = lateral
+        self.spinning = spinning
+        self.rolling = rolling
+        self.damping = damping
+        self.stiffness = stiffness
+        self.restitution = restitution
+
+    @staticmethod
+    def from_dynamics(dynamics):
+        return Dynamics(dynamics[1], dynamics[7], dynamics[6], dynamics[8],
+                        dynamics[9], dynamics[5])
 
 
 class Link(object):
     """A link element of a body"""
-    def __init__(self, inertia, visuals, collisions):
+    def __init__(self, inertia, dynamics, visuals, collisions):
         self.inertial = inertia
+        self.dynamics = dynamics
         self.visuals = visuals
         self.collisions = collisions
         self.position = np.zeros(3)
@@ -111,7 +128,9 @@ class Link(object):
         global LINK_CACHE
         name = client.getBodyInfo(uid)[lid + 1]
         if name not in LINK_CACHE:
-            inertia = Inertial.from_dynamics(client.getDynamicsInfo(uid, lid))
+            dynamics = client.getDynamicsInfo(uid, lid)
+            dyna = Dynamics.from_dynamics(dynamics)
+            inertia = Inertial.from_dynamics(dynamics)
             visuals = [Visual.from_visual(v)
                        for v in client.getVisualShapeData(uid)
                        # Need to explicitly filter out visuals
@@ -122,7 +141,7 @@ class Link(object):
                           for s in client.getCollisionShapeData(uid, lid)]
             assert collisions, "Could not create collision for Link\
                 (uID: {:d}, lID: {:d})".format(uid, lid)
-            LINK_CACHE[name] = Link(inertia, visuals, collisions)
+            LINK_CACHE[name] = Link(inertia, dyna, visuals, collisions)
         return copy.deepcopy(LINK_CACHE[name])
 
 
@@ -277,6 +296,22 @@ class MultiBodyBuilder(object):
             linkJointAxis=joint_axis,
             # Additional parameters
             flags=self.flags)
+        # After spawning apply dynamics
+        for lid, link in enumerate(self._links):
+            client.changeDynamics(uid, lid,
+                                  lateralFriction=link.dynamics.lateral,
+                                  spinningFriction=link.dynamics.spinning,
+                                  rollingFriction=link.dynamics.rolling,
+                                  restitution=link.dynamics.restitution,
+                                  # NOTE: The following is a temporary hack for
+                                  # more stable friction handling, currently
+                                  # this property can't be queried from the
+                                  # spawned URDF, however, we enable it by
+                                  # default since we need for all modules
+                                  # currently implemented
+                                  frictionAnchor=1,
+                                  contactDamping=link.dynamics.damping,
+                                  contactStiffness=link.dynamics.stiffness)
         return uid
 
     @staticmethod

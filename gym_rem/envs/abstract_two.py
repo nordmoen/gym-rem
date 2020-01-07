@@ -309,7 +309,7 @@ class ModularEnv2D(gym.Env):
             if joint.angle == a:
                 joint.motorSpeed = 0.0
             else:
-                joint.motorSpeed = 10.8 * np.sign(a)
+                joint.motorSpeed = 10.8 * np.sign(a - joint.angle)
 
     def step(self, action):
         self.act(action)

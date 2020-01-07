@@ -47,18 +47,14 @@ class ModularEnv(gym.Env):
         # first time 'render' is called
         self.client.resetSimulation()
         self.client.setGravity(0, 0, -9.81)
-        # Extract time step for sleep during rendering
-        self.dt = self.client.getPhysicsEngineParameters()['fixedTimeStep']
-        # Following parameters from:
-        # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L44
-        # self.client.setPhysicsEngineParameter(numSolverIterations=10,
-                                              # numSubSteps=1)
         # Load ground plane for robots to walk on
         self.plane_id = self.client.loadURDF('plane/plane.urdf')
         assert self.plane_id >= 0, "Could not load 'plane.urdf'"
         # Change dynamics parameters from:
         # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L45
         self.client.changeDynamics(self.plane_id, -1, lateralFriction=0.9)
+        # Extract time step for sleep during rendering
+        self.dt = self.client.getPhysicsEngineParameters()['fixedTimeStep']
 
     def close(self):
         self.client.disconnect()
