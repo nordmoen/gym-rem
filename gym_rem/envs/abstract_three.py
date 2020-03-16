@@ -48,11 +48,16 @@ class ModularEnv(gym.Env):
         self.client.resetSimulation()
         self.client.setGravity(0, 0, -9.81)
         # Load ground plane for robots to walk on
-        self.plane_id = self.client.loadURDF('plane/plane.urdf')
+        self.plane_id = self.client.loadURDF('plane/plane.urdf',
+                                             useMaximalCoordinates=1)
         assert self.plane_id >= 0, "Could not load 'plane.urdf'"
         # Change dynamics parameters from:
         # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L45
         self.client.changeDynamics(self.plane_id, -1, lateralFriction=0.9)
+        # self.client.setPhysicsEngineParameter(numSolverIterations=150)
+        # self.client.setPhysicsEngineParameter(numSolverIterations=8)
+        # self.client.setPhysicsEngineParameter(minimumSolverIslandSize=100)
+        self.client.setPhysicsEngineParameter(contactERP=0)
         # Extract time step for sleep during rendering
         self.dt = self.client.getPhysicsEngineParameters()['fixedTimeStep']
 

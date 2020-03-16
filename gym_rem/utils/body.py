@@ -309,7 +309,7 @@ class MultiBodyBuilder(object):
                                   # spawned URDF, however, we enable it by
                                   # default since we need for all modules
                                   # currently implemented
-                                  frictionAnchor=1,
+                                  # frictionAnchor=1,
                                   contactDamping=link.dynamics.damping,
                                   contactStiffness=link.dynamics.stiffness)
         return uid
