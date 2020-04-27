@@ -9,6 +9,8 @@ from gym.envs.registration import register
 try:
     register(id="ModularLocomotion3D-v0",
              entry_point="gym_rem.envs:Env3D")
+    register(id="ModularCollosseum3D-v0",
+             entry_point="gym_rem.envs:ColosseumEnv")
 except ImportError:
     pass
 

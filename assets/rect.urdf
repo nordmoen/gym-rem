@@ -4,7 +4,7 @@
     <contact>
 	  <!--<stiffness value="10000.0"/>-->
 	  <!--<damping value="10.0"/>-->
-	  <spinning_friction value="0.3"/>
+	  <!--<spinning_friction value="0.9"/>-->
 	  <lateral_friction value="0.9"/>
     </contact>
     <inertial>

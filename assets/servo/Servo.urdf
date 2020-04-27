@@ -2,6 +2,8 @@
 <robot name="Servo">
   <link name="Plate">
     <contact>
+	  <!--<stiffness value="10000.0"/>-->
+	  <!--<damping value="10.0"/>-->
 	  <lateral_friction value="0.9"/>
     </contact>
     <inertial>
@@ -27,6 +29,8 @@
   </link>
   <link name="Body">
     <contact>
+	  <!--<stiffness value="10000.0"/>-->
+	  <!--<damping value="10.0"/>-->
 	  <lateral_friction value="0.9"/>
     </contact>
     <inertial>

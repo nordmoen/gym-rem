@@ -8,9 +8,9 @@ setup(name='gym_rem',
       author="Jørgen Nordmoen and Frank Veenstra",
       author_email="jorgehn@ifi.uio.no",
       include_package_data=True,
-      install_requires=['gym>=0.15', 'numpy>=1.17'],
+      install_requires=['gym>=0.17', 'numpy>=1.18'],
       extras_require={
-          '3D': ['pybullet>=2.6'],
-          '2D': ['box2d-py>=2.3', 'pyglet>=1.3']
+          '3D': ['pybullet>=2.7'],
+          '2D': ['box2d-py>=2.3', 'pyglet>=1.5']
       },
       test_suite='tests')

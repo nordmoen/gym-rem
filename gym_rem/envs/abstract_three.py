@@ -19,18 +19,36 @@ import time
 ASSET_PATH = os.path.join(os.path.dirname(__file__), "../../assets")
 
 
+class PNGTerrain(object):
+    """Terrain based on PNG height field with possible texture PNG"""
+    def __init__(self, height_field, scale, texture=None):
+        self.height_field = height_field
+        self.scale = scale
+        self.texture = texture
+
+
+class ArrayTerrain(object):
+    """Terrain based on 2D array data"""
+    def __init__(self, height_field, scale):
+        self.scale = scale
+        self.field = np.asarray(height_field)
+        assert len(self.field.shape) == 2, "Height field must be 2D"
+        self.rows, self.cols = self.field.shape
+
+
 class ModularEnv(gym.Env):
     """Abstract modular environment"""
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self):
+    def __init__(self, terrain=None):
         # Create pybullet interfaces
         self.client = BulletClient(connection_mode=pyb.DIRECT)
         self._last_render = time.time()
         # Setup information needed for simulation
         self.dt = 1. / 240.
         self.client.setAdditionalSearchPath(ASSET_PATH)
+        self.terrain_type = terrain
         # Stored for user interactions
         self.morphology = None
         self.multi_id = None
@@ -40,6 +58,38 @@ class ModularEnv(gym.Env):
         self._real_time = False
         # Run setup
         self.setup()
+
+    def load_terrain(self):
+        """Helper method to load terrain for ground"""
+        if not self.terrain_type:
+            return None
+        elif type(self.terrain_type) is PNGTerrain:
+            shape = self.client.createCollisionShape(
+                    shapeType=pyb.GEOM_HEIGHTFIELD,
+                    meshScale=self.terrain_type.scale,
+                    fileName=self.terrain_type.height_field)
+            assert shape >= 0, "Could not load PNGTerrain shape"
+            terrain = self.client.createMultiBody(0, shape)
+            if self.terrain_type.texture:
+                texture = self.client.loadTexture(self.terrain_type.texture)
+                assert texture >= 0, "Could not load PNGTerrain texture"
+                self.client.changeVisualShape(terrain, -1, textureUniqueId=texture)
+        elif type(self.terrain_type) is ArrayTerrain:
+            shape = self.client.createCollisionShape(
+                    shapeType=pyb.GEOM_HEIGHTFIELD,
+                    meshScale=self.terrain_type.scale,
+                    heightfieldTextureScaling=(self.terrain_type.rows - 1) / 2.,
+                    heightfieldData=self.terrain_type.field.flatten(),
+                    numHeightfieldRows=self.terrain_type.rows,
+                    numHeightfieldColumns=self.terrain_type.cols)
+            assert shape >= 0, "Could not create ArrayTerrain shape"
+            terrain = self.client.createMultiBody(0, shape)
+            self.client.resetBasePositionAndOrientation(terrain,
+                                                        [0, 0, 0],
+                                                        [0, 0, 0, 1])
+        assert terrain >= 0, "Could not load terrain"
+        self.client.changeVisualShape(terrain, -1, rgbaColor=[1, 1, 1, 1])
+        return terrain
 
     def setup(self):
         """Helper method to initialize default environment"""
@@ -54,8 +104,7 @@ class ModularEnv(gym.Env):
         # Change dynamics parameters from:
         # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L45
         self.client.changeDynamics(self.plane_id, -1, lateralFriction=0.9)
-        # self.client.setPhysicsEngineParameter(numSolverIterations=150)
-        # self.client.setPhysicsEngineParameter(numSolverIterations=8)
+        self.client.setPhysicsEngineParameter(numSolverIterations=10)
         # self.client.setPhysicsEngineParameter(minimumSolverIslandSize=100)
         self.client.setPhysicsEngineParameter(contactERP=0)
         # Extract time step for sleep during rendering
@@ -65,6 +114,8 @@ class ModularEnv(gym.Env):
         self.client.disconnect()
 
     def reset(self, morphology=None, max_size=None):
+        # Disable rendering during spawning
+        self.client.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 0)
         # Reset the environment by running all setup code again
         self.setup()
         # Reset internal state
@@ -113,7 +164,10 @@ class ModularEnv(gym.Env):
                 self.client.removeBody(m_id)
                 # Remove from our private copy
                 parent = module.parent
-                del parent[module]
+                if parent:
+                    del parent[module]
+                else:
+                    raise RuntimeError("Trying to remove root module due to collision!")
                 continue
             # Add children to queue for processing
             queue.extend(module.children)
@@ -127,7 +181,10 @@ class ModularEnv(gym.Env):
                 # If we are above max desired spawn size drain queue and remove
                 for module in queue:
                     parent = module.parent
-                    del parent[module]
+                    if parent:
+                        del parent[module]
+                    else:
+                        raise RuntimeError("Trying to prune root link!")
                 break
         # Create multi body builder and instantiate with morphological tree and
         # module IDs
@@ -150,6 +207,15 @@ class ModularEnv(gym.Env):
                                                 shape=(3 * len(self._joints),))
         lows = np.repeat(-1.57, len(self._joints))
         self.action_space = gym.spaces.Box(lows, -1. * lows)
+        # Load additional terrain if requested
+        # NOTE: We load terrain after collision detection to avoid collisions
+        # with terrain itself
+        if self.load_terrain() is not None:
+            # If a different terrain was loaded we remove the plane
+            self.client.removeBody(self.plane_id)
+            self.plane_id = None
+        # Enable rendering here
+        self.client.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 1)
         return self.observation()
 
     def act(self, action):
@@ -169,7 +235,7 @@ class ModularEnv(gym.Env):
             self.client.setJointMotorControl2(self.multi_id, j_id, **l_cfg)
 
     def step(self, action):
-        self.act(action)
+        self.act(np.asarray(action))
         self.client.stepSimulation()
         return self.observation(), self.reward(), False, {}
 
@@ -208,12 +274,16 @@ class ModularEnv(gym.Env):
             # Close current simulation and start new with GUI
             self.close()
             self.client = BulletClient(connection_mode=pyb.GUI)
+            # Disable rendering during spawning
+            self.client.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 0)
+            # Reset if morphology is set
             if self.morphology is not None:
                 self.reset(self.morphology)
             else:
                 self.setup()
             # Configure viewport
             self.client.configureDebugVisualizer(pyb.COV_ENABLE_GUI, 0)
+            self.client.configureDebugVisualizer(pyb.COV_ENABLE_PLANAR_REFLECTION, 1)
             self.client.resetDebugVisualizerCamera(0.5, 50.0, -35.0, (0, 0, 0))
             # Setup timing for correct sleeping when rendering
             self._last_render = time.time()

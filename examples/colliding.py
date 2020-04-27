@@ -4,7 +4,7 @@
 Simple example to show of the return value when modules are colliding
 """
 
-from gym_rem.morph.servo import Servo, Connection
+from gym_rem.morph.three.servo import Servo, Connection
 import gym
 import logging
 import time
@@ -12,7 +12,7 @@ import time
 # Setup logging if desired:
 logging.basicConfig(level=logging.INFO)
 # Create environment
-env = gym.make("ModularLocomotion-v0")
+env = gym.make("ModularLocomotion3D-v0")
 # Call render before creating robot and 'reset' since it will reset the
 # environment to enable GUI
 env.render()

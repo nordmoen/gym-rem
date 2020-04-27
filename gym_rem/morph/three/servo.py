@@ -47,7 +47,7 @@ class Servo(Module3D):
     def joint(self):
         return {'controlMode': pyb.POSITION_CONTROL,
                 'force': 1.8,
-                'maxVelocity': 10.6,
+                'maxVelocity': 6.2,
                 'limit': (-1.57, 1.57),
                 'target': 'targetPosition'}
 
