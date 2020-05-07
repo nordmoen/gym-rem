@@ -2,6 +2,7 @@
 try:
     from .abstract_three import ModularEnv as Env3D
     from .three.colosseum import ColosseumEnv
+    from .three.ripple import RippleEnv
     from .abstract_three import PNGTerrain, ArrayTerrain
 except ModuleNotFoundError:
     # This indicates that PyBullet is not installed
@@ -12,4 +13,5 @@ except ModuleNotFoundError:
     # Box2D not installed
     pass
 
-__all__ = ['Env2D', 'Env3D', 'PNGTerrain', 'ArrayTerrain', 'ColosseumEnv']
+__all__ = ['Env2D', 'Env3D', 'PNGTerrain', 'ArrayTerrain', 'ColosseumEnv',
+           'RippleEnv']

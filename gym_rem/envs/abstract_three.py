@@ -104,7 +104,7 @@ class ModularEnv(gym.Env):
         # Change dynamics parameters from:
         # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/gym/pybullet_envs/deep_mimic/env/pybullet_deep_mimic_env.py#L45
         self.client.changeDynamics(self.plane_id, -1, lateralFriction=0.9)
-        self.client.setPhysicsEngineParameter(numSolverIterations=10)
+        # self.client.setPhysicsEngineParameter(numSolverIterations=10)
         # self.client.setPhysicsEngineParameter(minimumSolverIslandSize=100)
         self.client.setPhysicsEngineParameter(contactERP=0)
         # Extract time step for sleep during rendering
@@ -204,9 +204,10 @@ class ModularEnv(gym.Env):
             if j_info[2] != pyb.JOINT_FIXED:
                 self._joint_ids.append(jid)
         self.observation_space = gym.spaces.Box(-100., 100.,
-                                                shape=(3 * len(self._joints),))
+                                                shape=(3 * len(self._joints),),
+                                                dtype=np.float64)
         lows = np.repeat(-1.57, len(self._joints))
-        self.action_space = gym.spaces.Box(lows, -1. * lows)
+        self.action_space = gym.spaces.Box(lows, -1. * lows, dtype=np.float64)
         # Load additional terrain if requested
         # NOTE: We load terrain after collision detection to avoid collisions
         # with terrain itself
