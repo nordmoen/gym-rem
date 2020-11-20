@@ -11,9 +11,10 @@ import gym
 env = gym.make("ModularLocomotion3D-v0")
 # Create modular robot to work with
 robot = Rect()
-robot += Servo(1)
 robot += Servo()
-robot += Rect()
+servo = Servo()
+robot += servo
+servo += Rect()
 # Call render before creating robot and 'reset' since it will reset the
 # environment to enable GUI
 env.render()

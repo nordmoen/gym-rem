@@ -21,10 +21,11 @@ ASSET_PATH = os.path.join(os.path.dirname(__file__), "../../assets")
 
 class PNGTerrain(object):
     """Terrain based on PNG height field with possible texture PNG"""
-    def __init__(self, height_field, scale, texture=None):
+    def __init__(self, height_field, scale, texture=None, position=None):
         self.height_field = height_field
         self.scale = scale
         self.texture = texture
+        self.position = position
 
 
 class ArrayTerrain(object):
@@ -74,6 +75,10 @@ class ModularEnv(gym.Env):
                 texture = self.client.loadTexture(self.terrain_type.texture)
                 assert texture >= 0, "Could not load PNGTerrain texture"
                 self.client.changeVisualShape(terrain, -1, textureUniqueId=texture)
+            if self.terrain_type.position:
+                self.client.resetBasePositionAndOrientation(terrain,
+                                                            self.terrain_type.position,
+                                                            [0, 0, 0, 1])
         elif type(self.terrain_type) is ArrayTerrain:
             shape = self.client.createCollisionShape(
                     shapeType=pyb.GEOM_HEIGHTFIELD,

@@ -13,6 +13,10 @@ try:
              entry_point="gym_rem.envs:ColosseumEnv")
     register(id="ModularRipple3D-v0",
              entry_point="gym_rem.envs:RippleEnv")
+    register(id="ModularDitch3D-v0",
+             entry_point="gym_rem.envs:DitchEnv")
+    register(id="ModularSquareDitch3D-v0",
+             entry_point="gym_rem.envs:SquareDitchEnv")
 except ImportError:
     pass
 

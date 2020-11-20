@@ -14,7 +14,7 @@ terrain = PNGTerrain('heightmaps/custom1.png',
 # Create environment
 env = gym.make("ModularLocomotion3D-v0", terrain=terrain)
 # Alternatively:
-env = gym.make("ModularColosseum3D-v0")
+env = gym.make("ModularRipple3D-v0")
 # Create modular robot to work with
 robot = Rect()
 robot += Servo(1)

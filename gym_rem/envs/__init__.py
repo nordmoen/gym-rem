@@ -3,6 +3,8 @@ try:
     from .abstract_three import ModularEnv as Env3D
     from .three.colosseum import ColosseumEnv
     from .three.ripple import RippleEnv
+    from .three.ditch import DitchEnv
+    from .three.square_ditch import SquareDitchEnv
     from .abstract_three import PNGTerrain, ArrayTerrain
 except ModuleNotFoundError:
     # This indicates that PyBullet is not installed
@@ -14,4 +16,4 @@ except ModuleNotFoundError:
     pass
 
 __all__ = ['Env2D', 'Env3D', 'PNGTerrain', 'ArrayTerrain', 'ColosseumEnv',
-           'RippleEnv']
+           'RippleEnv', 'DitchEnv', 'SquareDitchEnv']
